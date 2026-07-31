@@ -11,9 +11,9 @@ import java.util.Locale
  * constants and unit labels are hand-picked — pinned by tests instead of by platform
  * formatters.
  */
-enum class MeasurementSystem {
-    METRIC,
-    IMPERIAL;
+enum class MeasurementSystem(val storageKey: String) {
+    METRIC("metric"),
+    IMPERIAL("imperial");
 
     /**
      * Center-of-gauge unit label, e.g. "KM/H" / "KM/T" / "MPH".
@@ -99,6 +99,9 @@ enum class MeasurementSystem {
         }.format(value)
 
     companion object {
+        fun fromStorageKey(key: String?): MeasurementSystem? =
+            entries.firstOrNull { it.storageKey == key }
+
         const val KMH_PER_MPS = 3.6
         const val METERS_PER_MILE = 1609.344
         const val MPH_PER_MPS = 3600.0 / METERS_PER_MILE // 2.2369362920544…
