@@ -6,7 +6,13 @@ import kotlin.math.min
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
+import no.bikespeed.app.model.AltitudeSample
+import no.bikespeed.app.model.ElevationAccumulator
+import no.bikespeed.app.model.GradeCalculator
 import no.bikespeed.app.model.LocationFix
+import no.bikespeed.app.model.RouteSample
+import no.bikespeed.app.model.TripLogEntry
 import no.bikespeed.app.model.TripState
 
 /**
@@ -58,6 +64,66 @@ class TripManager(
      * [canSaveTrip] must not light up at every red light.
      */
     val isAutoPaused: Boolean get() = _isAutoPaused.value
+
+    private val _totalAscent = MutableStateFlow<Double?>(null)
+    private val _totalDescent = MutableStateFlow<Double?>(null)
+    private val _currentGrade = MutableStateFlow<Double?>(null)
+
+    val totalAscentFlow: StateFlow<Double?> = _totalAscent.asStateFlow()
+    val totalDescentFlow: StateFlow<Double?> = _totalDescent.asStateFlow()
+    val currentGradeFlow: StateFlow<Double?> = _currentGrade.asStateFlow()
+
+    /**
+     * Null until any usable altitude has been sampled: "no data" must stay distinguishable
+     * from "a flat ride" in the live UI just as it is in the saved log (see [TripLogEntry]).
+     */
+    val totalAscent: Double? get() = _totalAscent.value
+
+    /** Meters, positive. */
+    val totalDescent: Double? get() = _totalDescent.value
+
+    /**
+     * Rise over a trailing ~30 m of run — e.g. 0.05 for a 5 % climb. Null until enough of the
+     * trip has been ridden to measure one honestly; see [GradeCalculator].
+     */
+    val currentGrade: Double? get() = _currentGrade.value
+
+    /**
+     * The trip's height profile, for the saved trip's elevation chart. A plain list, not a
+     * flow — nothing draws it live; it is read once, at Save.
+     */
+    val altitudeProfile: List<AltitudeSample> get() = mutableAltitudeProfile
+
+    /**
+     * The trip's recorded track, for the detail map and GPX export. Decimated by distance
+     * like the profile but far more finely: a track sampled every 25 m visibly cuts corners
+     * on a map. Also read once, at Save.
+     */
+    val routeSamples: List<RouteSample> get() = mutableRouteSamples
+
+    private val mutableAltitudeProfile = mutableListOf<AltitudeSample>()
+    private var lastAltitudeSampleDistance = 0.0
+    private val mutableRouteSamples = mutableListOf<RouteSample>()
+    private var lastRouteSampleDistance = 0.0
+
+    /**
+     * The altitude source this trip is committed to, latched once from data actually arriving
+     * (see [latchElevationSource]): hardware presence can't decide — a barometer without its
+     * permission reports available yet never delivers — and the two sources measure against
+     * different zero points, so switching mid-trip would bank the difference as phantom climb.
+     */
+    private enum class ElevationSource { UNDECIDED, BAROMETER, GPS }
+
+    private var elevationSource = ElevationSource.UNDECIDED
+
+    /**
+     * Starts on the GPS deadband as a placeholder; the latch replaces it with an accumulator
+     * sized to the source that actually won.
+     */
+    private var elevation = ElevationAccumulator(deadband = GPS_ALTITUDE_DEADBAND)
+    private var grade = GradeCalculator(windowDistance = GRADE_WINDOW_METERS)
+    private var lastElevationSampleTimestamp: Instant? = null
+    private var barometerGraceFixesRemaining = BAROMETER_LATCH_GRACE_FIXES
 
     private var accumulatedActiveDuration = 0.0
     private var activeStart: Instant? = null
@@ -150,6 +216,9 @@ class TripManager(
         clearAutoPause()
         locationSource.setBackgroundUpdates(false)
         altimeter.stopUpdates()
+        // A parked bike isn't on a slope; otherwise the readout asserts the last hill for the
+        // whole pause.
+        _currentGrade.value = null
     }
 
     fun resume() {
@@ -158,6 +227,12 @@ class TripManager(
         _state.value = TripState.RUNNING
         locationSource.setBackgroundUpdates(true)
         altimeter.startUpdates()
+        // Altitude across the pause wasn't ridden, and the restarted barometer rebases its
+        // zero anyway, so re-baseline rather than bank the difference as climb. (The
+        // sampling-gap rule in sampleElevation catches this too, but a short pause with a
+        // rebased barometer would slip under it.)
+        elevation.reanchor()
+        grade.reset()
     }
 
     fun reset() {
@@ -172,9 +247,48 @@ class TripManager(
         tripStartDate = null
         clearAutoPause() // safe here: state is never RUNNING, so this can't start the clock
         lastAcceptedFix = null
+        mutableAltitudeProfile.clear()
+        lastAltitudeSampleDistance = 0.0
+        mutableRouteSamples.clear()
+        lastRouteSampleDistance = 0.0
+        elevation.reset()
+        grade.reset()
+        _totalAscent.value = null
+        _totalDescent.value = null
+        _currentGrade.value = null
+        elevationSource = ElevationSource.UNDECIDED
+        barometerGraceFixesRemaining = BAROMETER_LATCH_GRACE_FIXES
+        lastElevationSampleTimestamp = null
         _state.value = TripState.IDLE
         locationSource.setBackgroundUpdates(false)
         altimeter.stopUpdates()
+    }
+
+    /**
+     * Snapshots the current trip into a saveable log entry, or null if there's no paused trip
+     * or it's too short/short-lived to be meaningful.
+     *
+     * The entry is the trip's *scalars* only; its height profile and track are separate
+     * payloads ([altitudeProfile], [routeSamples]) the caller passes to the data stack
+     * alongside this. See [TripLogEntry] for why they aren't in it.
+     */
+    fun makeLogEntry(): TripLogEntry? {
+        if (state != TripState.PAUSED) return null
+        val tripStartDate = tripStartDate ?: return null
+        if (accumulatedActiveDuration < SAVE_MIN_DURATION_SECONDS) return null
+        if (accumulatedDistance < SAVE_MIN_DISTANCE_METERS) return null
+        return TripLogEntry(
+            id = UUID.randomUUID(),
+            startDate = tripStartDate,
+            duration = accumulatedActiveDuration,
+            distance = accumulatedDistance,
+            averageSpeed = averageSpeed,
+            maxSpeed = maxSpeed,
+            // Already null when no fix ever carried a usable altitude: "we don't know" must
+            // stay distinguishable from "it was flat". See TripLogEntry.
+            totalAscent = totalAscent,
+            totalDescent = totalDescent,
+        )
     }
 
     /**
@@ -199,6 +313,8 @@ class TripManager(
     private fun beginAutoPause() {
         _isAutoPaused.value = true
         suspendClock()
+        // Standing still: no current slope, else the readout keeps asserting the last hill.
+        _currentGrade.value = null
     }
 
     /**
@@ -301,6 +417,11 @@ class TripManager(
         val previous = previousFix
         if (previous == null) {
             anchor(fix)
+            fix.usableAltitude(ceiling = MAX_ALTITUDE_VERTICAL_ACCURACY)?.let { altitude ->
+                mutableAltitudeProfile.add(AltitudeSample(distance = 0.0, altitude = altitude))
+            }
+            appendRouteSample(fix)
+            sampleElevation(fix)
             return
         }
 
@@ -325,6 +446,115 @@ class TripManager(
             _accumulatedDistance.value = accumulatedDistance + delta
         }
         anchor(fix)
+
+        val usableAltitude = fix.usableAltitude(ceiling = MAX_ALTITUDE_VERTICAL_ACCURACY)
+        if (usableAltitude != null &&
+            accumulatedDistance - lastAltitudeSampleDistance >= ALTITUDE_SAMPLE_DISTANCE_INTERVAL
+        ) {
+            mutableAltitudeProfile.add(AltitudeSample(distance = accumulatedDistance, altitude = usableAltitude))
+            lastAltitudeSampleDistance = accumulatedDistance
+        }
+
+        // The isEmpty check isn't redundant with the first-fix branch above: a trip started
+        // while the app was already tracking has an anchor from before start(), so its first
+        // *running* fix comes through here — without this the track would begin 10 m in,
+        // planting the start marker down the road.
+        if (mutableRouteSamples.isEmpty() ||
+            accumulatedDistance - lastRouteSampleDistance >= ROUTE_SAMPLE_DISTANCE_INTERVAL
+        ) {
+            appendRouteSample(fix)
+        }
+
+        // Only a fix that moved the trip feeds elevation — the same jitter-floor protection
+        // distance gets, applied to climb: GPS altitude wander and barometric drift at a red
+        // light must not accumulate, and auto-pause can't guarantee that (the rider may
+        // switch it off).
+        if (advanced) {
+            sampleElevation(fix)
+        }
+    }
+
+    /**
+     * Records where the rider is, for the track. Unlike elevation sampling, this takes the
+     * fix with or without a usable altitude: a point with no height is still a point on the
+     * map, and GPX just omits its `<ele>`.
+     */
+    private fun appendRouteSample(fix: LocationFix) {
+        mutableRouteSamples.add(
+            RouteSample(
+                latitude = fix.latitude,
+                longitude = fix.longitude,
+                altitude = fix.usableAltitude(ceiling = MAX_ALTITUDE_VERTICAL_ACCURACY),
+                timestamp = fix.timestamp,
+                // Null is "unknown" — store null, not a bogus reading, so the profile derives
+                // speed from the timestamps for that point instead. Clamp the rest to the
+                // same ceiling maxSpeed uses, so a glitchy fix can't plant a spike in the
+                // recorded track.
+                speed = fix.speed?.let { min(it, MAX_PLAUSIBLE_SPEED) },
+                // The guarded accumulated distance, so the speed profile shares the height
+                // profile's X-axis exactly rather than re-deriving a noisier one from raw
+                // coordinates.
+                distance = accumulatedDistance,
+            )
+        )
+        lastRouteSampleDistance = accumulatedDistance
+    }
+
+    /**
+     * Reads the trip's altitude source — committed by [latchElevationSource] at the first
+     * sample — into the ascent/descent totals and grade window. Only reached by a fix that
+     * passed every guard above *and* advanced distance, the gating the elevation figures
+     * rely on.
+     */
+    private fun sampleElevation(fix: LocationFix) {
+        val altitude: Double? = when (elevationSource) {
+            ElevationSource.BAROMETER -> altimeter.relativeAltitude
+            ElevationSource.GPS -> fix.usableAltitude(ceiling = MAX_ALTITUDE_VERTICAL_ACCURACY)
+            ElevationSource.UNDECIDED -> latchElevationSource(fix)
+        }
+        if (altitude == null) return
+
+        // A break in sampling separates two readings that aren't comparable — see
+        // ELEVATION_CONTINUITY_GAP_SECONDS. Anchor fresh and let the grade window refill.
+        val lastSample = lastElevationSampleTimestamp
+        if (lastSample != null &&
+            fix.timestamp.secondsSince(lastSample) > ELEVATION_CONTINUITY_GAP_SECONDS
+        ) {
+            elevation.reanchor()
+            grade.reset()
+        }
+        lastElevationSampleTimestamp = fix.timestamp
+
+        elevation.add(altitude = altitude)
+        _totalAscent.value = elevation.ascent
+        _totalDescent.value = elevation.descent
+
+        grade.add(distance = accumulatedDistance, altitude = altitude)
+        _currentGrade.value = grade.grade
+    }
+
+    /**
+     * Commits the trip to barometer or GPS altitude from data actually arriving, not hardware
+     * presence: a barometer without its permission reports available yet never delivers. The
+     * barometer gets a short grace for its first reading (it was only just started); GPS wins
+     * when there is no barometer, when it has failed, or when the grace runs out.
+     */
+    private fun latchElevationSource(fix: LocationFix): Double? {
+        if (altimeter.isAvailable) {
+            val reading = altimeter.relativeAltitude
+            if (reading != null) {
+                elevationSource = ElevationSource.BAROMETER
+                elevation = ElevationAccumulator(deadband = BAROMETER_DEADBAND)
+                return reading
+            }
+            if (barometerGraceFixesRemaining > 0) {
+                barometerGraceFixesRemaining -= 1
+                return null
+            }
+        }
+        elevationSource = ElevationSource.GPS
+        elevation = ElevationAccumulator(deadband = GPS_ALTITUDE_DEADBAND)
+        return fix.usableAltitude(ceiling = MAX_ALTITUDE_VERTICAL_ACCURACY)
     }
 
     private fun Instant.secondsSince(other: Instant): Double =
@@ -361,5 +591,36 @@ class TripManager(
          * is holding still.
          */
         const val AUTO_PAUSE_FIX_TIMEOUT_SECONDS: Double = 5.0
+
+        /**
+         * Deadbands per altitude source: the barometer resolves to ~±1 m; the GPS fallback
+         * wobbles by metres and needs the wider band.
+         */
+        const val BAROMETER_DEADBAND: Double = 1.0
+        const val GPS_ALTITUDE_DEADBAND: Double = 3.0
+
+        /**
+         * Beyond this, GPS altitude's own error bar manufactures climb — a 30 m error against
+         * a 3 m deadband — so such fixes contribute nothing.
+         */
+        const val MAX_ALTITUDE_VERTICAL_ACCURACY: Double = 15.0
+
+        /**
+         * How many fixes an undecided trip waits for the just-started barometer's first
+         * reading before settling for GPS. Readings normally arrive within a second or two,
+         * so this only decides the pathological silent case.
+         */
+        const val BAROMETER_LATCH_GRACE_FIXES: Int = 10
+
+        /**
+         * A sampling gap longer than this — a pause, standstill, or stretch of unusable fixes
+         * — separates two readings that aren't comparable: whatever altitude did in between
+         * wasn't ridden, so the next sample re-baselines instead of banking the gap.
+         */
+        const val ELEVATION_CONTINUITY_GAP_SECONDS: Double = 15.0
+
+        const val GRADE_WINDOW_METERS: Double = 30.0
+        const val ALTITUDE_SAMPLE_DISTANCE_INTERVAL: Double = 25.0
+        const val ROUTE_SAMPLE_DISTANCE_INTERVAL: Double = 10.0
     }
 }

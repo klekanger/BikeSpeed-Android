@@ -8,8 +8,18 @@ object Fix {
     const val OSLO_LATITUDE = 59.9139
     const val OSLO_LONGITUDE = 10.7522
 
-    /** A latitude [meters] north of [latitude] — the harness's straight-line road. */
-    fun north(latitude: Double, meters: Double): Double = latitude + meters / 111_320
+    /**
+     * A latitude [meters] north of [latitude] — the harness's straight-line road.
+     *
+     * One degree of latitude on GeoMath's sphere is 111 194.93 m; the divisor is deliberately
+     * a shade *smaller*, so a "5 m" move measures ~5.004 m under the app's own distance
+     * function. Landing slightly over the nominal figure keeps sampling-interval boundary
+     * tests (two 5 m hops must cross a 10 m interval) off the floating-point knife edge —
+     * with the exact divisor a hop measures 4.9999967 m and the boundary flips. The iOS
+     * fixture has the same property by accident of WGS-84 vs its 111 320 figure; here it is
+     * explicit. The ~0.1 % overshoot is far inside every distance tolerance asserted.
+     */
+    fun north(latitude: Double, meters: Double): Double = latitude + meters / 111_100.0
 }
 
 /**
