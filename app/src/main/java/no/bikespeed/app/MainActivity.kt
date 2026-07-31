@@ -9,7 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import no.bikespeed.app.ui.main.MainScreen
+import no.bikespeed.app.ui.BikeSpeedNavHost
 import no.bikespeed.app.ui.theme.BikeSpeedTheme
 
 class MainActivity : ComponentActivity() {
@@ -47,12 +47,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BikeSpeedTheme {
-                MainScreen(
-                    container = container,
-                    // Navigation to the trip log and settings lands with those screens.
-                    onTripLog = {},
-                    onSettings = {},
-                )
+                BikeSpeedNavHost(container = container)
             }
         }
     }
