@@ -73,6 +73,7 @@ fun MainScreen(
 
     val measurementSystem by settings.measurementSystemFlow.collectAsState()
     val maxGaugeSpeedKmh by settings.maxGaugeSpeedKmhFlow.collectAsState()
+    val tilt by container.tiltProvider.tilt.collectAsState()
 
     val locale = Locale.getDefault()
 
@@ -98,6 +99,7 @@ fun MainScreen(
                 maxGaugeSpeedKmh = maxGaugeSpeedKmh,
                 measurementSystem = measurementSystem,
                 locale = locale,
+                tilt = tilt,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp),
