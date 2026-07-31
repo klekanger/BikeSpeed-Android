@@ -1,6 +1,7 @@
 package no.bikespeed.app.model
 
 import java.time.Instant
+import kotlinx.serialization.Serializable
 
 /**
  * One point of a trip's recorded track.
@@ -11,7 +12,11 @@ import java.time.Instant
  * [speed] and [distance] are app-internal (the speed-profile chart), never written to GPX.
  * Both are additive to the stored JSON blob and optional, so trips saved before they shipped
  * decode with them null and `SpeedProfile` reconstructs them from the geometry.
+ *
+ * The JSON shape (field names, ISO-8601 timestamps, absent-not-null optionals) is pinned by
+ * `TripPayloadCoderTest` — it is the wire format shared with iOS.
  */
+@Serializable
 data class RouteSample(
     val latitude: Double,
     val longitude: Double,
@@ -19,7 +24,8 @@ data class RouteSample(
      * Absent, not zero, when the fix had no usable vertical accuracy — GPX omits `<ele>`
      * rather than claiming sea level.
      */
-    val altitude: Double?,
+    val altitude: Double? = null,
+    @Serializable(with = InstantIso8601Serializer::class)
     val timestamp: Instant,
     /**
      * The instantaneous GPS (Doppler) speed at this point, in m/s — the same reading the gauge

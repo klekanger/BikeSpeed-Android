@@ -2,7 +2,11 @@
 agp = "9.1.1"
 # Must match the Kotlin Gradle Plugin version embedded in AGP (built-in Kotlin).
 # AGP 9.1.1 has a runtime dependency on KGP 2.2.10 — check the AGP POM when bumping AGP.
-composeCompiler = "2.2.10"
+# The compose-compiler, serialization, and KSP plugin versions all key off this.
+kotlin = "2.2.10"
+ksp = "2.2.10-2.0.2"
+room = "2.8.4"
+serializationJson = "1.11.0"
 composeBom = "2026.06.01"
 activityCompose = "1.13.0"
 # lifecycle 2.11.0 / core 1.19.0 require compileSdk 37, whose platform isn't
@@ -38,7 +42,14 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+androidx-test-core = { group = "androidx.test", name = "core", version = "1.7.0" }
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serializationJson" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "composeCompiler" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

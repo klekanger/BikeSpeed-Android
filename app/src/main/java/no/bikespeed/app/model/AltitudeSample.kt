@@ -1,5 +1,7 @@
 package no.bikespeed.app.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * One point of a trip's height profile.
  *
@@ -10,6 +12,7 @@ package no.bikespeed.app.model
  * chart reads a profile, so the trip list mustn't decode one per row. No timestamp (unlike
  * [RouteSample]) — a chart against distance has no use for one.
  */
+@Serializable
 data class AltitudeSample(
     /** Meters. */
     val distance: Double,
