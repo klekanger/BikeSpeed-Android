@@ -6,6 +6,15 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.secrets)
+}
+
+// The Maps API key: developers put MAPS_API_KEY=<key> in local.properties (git-ignored);
+// the defaults file keeps a keyless build working — the map then renders no tiles, but the
+// rest of the detail screen is unaffected.
+secrets {
+    propertiesFileName = "local.properties"
+    defaultPropertiesFileName = "local.defaults.properties"
 }
 
 android {
@@ -24,6 +33,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Fallback for variants the secrets plugin doesn't reach (the unit-test manifest);
+        // the plugin overrides this with local.properties' MAPS_API_KEY for app variants.
+        manifestPlaceholders["MAPS_API_KEY"] = ""
     }
 
     buildTypes {
@@ -64,6 +77,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.play.services.location)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.maps.compose)
+    implementation(libs.play.services.maps)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

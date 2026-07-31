@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- GPX exports shared to other apps via ACTION_SEND. -->
+    <cache-path name="gpx_exports" path="GPXExports/" />
+</paths>

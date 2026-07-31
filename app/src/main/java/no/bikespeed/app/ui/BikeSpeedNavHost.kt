@@ -3,12 +3,22 @@ package no.bikespeed.app.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
+import androidx.navigation.toRoute
+import java.util.UUID
+import no.bikespeed.app.model.TripLogEntry
+import no.bikespeed.app.ui.detail.TripDetailLoader
+import no.bikespeed.app.ui.detail.TripDetailScreen
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
@@ -49,21 +59,42 @@ fun BikeSpeedNavHost(container: AppContainer) {
                 onBack = { navController.popBackStack() },
             )
         }
-        composable<TripDetailDestination> {
-            // The detail screen (map, charts, GPX share) lands in the next step.
-            DetailPlaceholder()
-        }
-    }
-}
+        composable<TripDetailDestination> { backStackEntry ->
+            val destination = backStackEntry.toRoute<TripDetailDestination>()
+            val tripId = UUID.fromString(destination.tripId)
+            val scalars by container.tripDataStack.repository.observeScalars()
+                .collectAsState(initial = null)
 
-@Composable
-private fun DetailPlaceholder() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = "Trip detail coming soon", color = Color.White)
+            // Snapshot the entry the first time the row resolves — the iOS pattern: the
+            // detail body reads a *value*, so deleting the row can't destroy it mid-pop.
+            var entry by remember { mutableStateOf<TripLogEntry?>(null) }
+            LaunchedEffect(scalars) {
+                if (entry == null) {
+                    entry = scalars?.firstOrNull { it.id == destination.tripId }?.toEntry()
+                }
+            }
+
+            val context = LocalContext.current
+            val loader = remember {
+                TripDetailLoader(
+                    repository = container.tripDataStack.repository,
+                    cacheDir = context.cacheDir,
+                )
+            }
+
+            entry?.let { snapshot ->
+                TripDetailScreen(
+                    entry = snapshot,
+                    loader = loader,
+                    stack = container.tripDataStack,
+                    settings = container.settingsStore,
+                    onBack = { navController.popBackStack() },
+                )
+            } ?: Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+            )
+        }
     }
 }
