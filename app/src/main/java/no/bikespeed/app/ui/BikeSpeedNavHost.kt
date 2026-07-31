@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
 import no.bikespeed.app.AppContainer
+import no.bikespeed.app.ui.log.TripLogScreen
 import no.bikespeed.app.ui.main.MainScreen
 import no.bikespeed.app.ui.settings.SettingsScreen
 
@@ -20,6 +21,7 @@ import no.bikespeed.app.ui.settings.SettingsScreen
 @Serializable object MainDestination
 @Serializable object SettingsDestination
 @Serializable object TripLogDestination
+@Serializable data class TripDetailDestination(val tripId: String)
 
 @Composable
 fun BikeSpeedNavHost(container: AppContainer) {
@@ -40,21 +42,28 @@ fun BikeSpeedNavHost(container: AppContainer) {
             )
         }
         composable<TripLogDestination> {
-            // The trip log list lands in the next step; the destination exists so the
-            // navigation shape is final.
-            TripLogPlaceholder()
+            TripLogScreen(
+                stack = container.tripDataStack,
+                settings = container.settingsStore,
+                onTrip = { id -> navController.navigate(TripDetailDestination(id.toString())) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable<TripDetailDestination> {
+            // The detail screen (map, charts, GPX share) lands in the next step.
+            DetailPlaceholder()
         }
     }
 }
 
 @Composable
-private fun TripLogPlaceholder() {
+private fun DetailPlaceholder() {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = "Trip log coming soon", color = Color.White)
+        Text(text = "Trip detail coming soon", color = Color.White)
     }
 }
