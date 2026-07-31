@@ -19,3 +19,13 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+# kotlinx.serialization: keep the generated serializer lookups when minification is enabled.
+# (Release currently ships unminified; these rules are here so flipping isMinifyEnabled on
+# doesn't silently break payload decoding.)
+-keepattributes *Annotation*, InnerClasses
+-keepclassmembers class no.bikespeed.app.model.** {
+    *** Companion;
+}
+-keepclasseswithmembers class no.bikespeed.app.model.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
