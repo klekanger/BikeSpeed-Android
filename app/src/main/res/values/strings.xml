@@ -1,3 +1,99 @@
 <resources>
     <string name="app_name">BikeSpeed</string>
+
+    <!-- Compass abbreviations. Norwegian swaps the east/west axis: Ø/V. The single letters
+         double as the hemisphere letters in the GPS position readout. -->
+    <string name="compass_n">N</string>
+    <string name="compass_ne">NE</string>
+    <string name="compass_e">E</string>
+    <string name="compass_se">SE</string>
+    <string name="compass_s">S</string>
+    <string name="compass_sw">SW</string>
+    <string name="compass_w">W</string>
+    <string name="compass_nw">NW</string>
+
+    <!-- Stats panel -->
+    <string name="average_speed">Average speed</string>
+    <string name="max_speed">Max speed</string>
+    <string name="direction_of_travel">Direction of travel</string>
+    <string name="distance">Distance</string>
+    <string name="duration">Duration</string>
+    <string name="auto_paused">Auto-paused</string>
+    <string name="altitude">Altitude</string>
+    <string name="climb">Climb</string>
+    <string name="descent">Descent</string>
+    <string name="position">Position</string>
+
+    <!-- Main screen chrome -->
+    <string name="logging">Logging</string>
+    <string name="gps_signal">GPS signal</string>
+    <string name="trips">Trips</string>
+    <string name="settings">Settings</string>
+
+    <!-- Trip controls -->
+    <string name="start">Start</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="stop">Stop</string>
+    <string name="save">Save</string>
+    <string name="reset">Reset</string>
+    <string name="trip_saved">Trip saved</string>
+    <string name="could_not_save_trip">Couldn\'t save trip</string>
+    <string name="save_failure_message">Your ride hasn\'t been lost — it\'s still paused. Try saving again.</string>
+    <string name="ok">OK</string>
+
+    <!-- Settings -->
+    <string name="section_trip">Trip</string>
+    <string name="auto_pause">Auto-pause</string>
+    <string name="auto_pause_footer">Pauses distance and time automatically when you stop.</string>
+    <string name="section_gauge">Speedometer</string>
+    <string name="units">Units</string>
+    <string name="metric">Metric</string>
+    <string name="imperial">Imperial</string>
+    <string name="language">Language</string>
+    <string name="system">System</string>
+    <string name="back">Back</string>
+
+    <!-- Trip log -->
+    <string name="trip_log">Trip Log</string>
+    <string name="filter_trips">Filter trips</string>
+    <string name="range_all">All</string>
+    <string name="range_last_7_days">Last 7 days</string>
+    <string name="range_last_30_days">Last 30 days</string>
+    <string name="range_this_year">This year</string>
+    <string name="no_trips_logged">No trips logged yet</string>
+    <string name="no_trips_in_period">No trips in this period — try a wider date range.</string>
+    <string name="totals">Totals</string>
+    <string name="personal_bests">Personal bests</string>
+    <string name="rides">Rides</string>
+    <string name="total_distance">Total distance</string>
+    <string name="total_time">Total time</string>
+    <string name="total_ascent">Total ascent</string>
+    <string name="this_week">This week</string>
+    <string name="this_month">This month</string>
+    <string name="longest_ride">Longest ride</string>
+    <string name="fastest_average">Fastest average</string>
+    <string name="top_speed">Top speed</string>
+    <string name="biggest_climb">Biggest climb</string>
+
+    <!-- Trip detail -->
+    <string name="date">Date</string>
+    <string name="total_descent">Total descent</string>
+    <string name="route">Route</string>
+    <string name="height_profile">Height profile</string>
+    <string name="speed_profile">Speed profile</string>
+    <string name="no_altitude_data">No altitude data for this trip</string>
+    <string name="no_speed_data">No speed data for this trip</string>
+    <string name="delete_trip_question">Delete this trip?</string>
+    <string name="cannot_be_undone">This cannot be undone.</string>
+    <string name="delete_trip">Delete Trip</string>
+    <string name="cancel">Cancel</string>
+    <string name="export_gpx">Export GPX</string>
+    <string name="marker_start">Start</string>
+    <string name="marker_finish">Finish</string>
+
+    <!-- Recording notification -->
+    <string name="recording_channel_name">Trip recording</string>
+    <string name="recording_trip_title">Recording trip</string>
+    <string name="recording_trip_text">BikeSpeed is tracking your ride</string>
 </resources>

@@ -1,5 +1,6 @@
 package no.bikespeed.app.platform
 
+import no.bikespeed.app.R
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -57,7 +58,7 @@ class TripRecordingService : Service() {
             manager.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Trip recording",
+                    context.getString(R.string.recording_channel_name),
                     // Low importance: the notification is a status pill, not an alert — it
                     // must not buzz the handlebar every time a ride starts.
                     NotificationManager.IMPORTANCE_LOW,
@@ -73,8 +74,8 @@ class TripRecordingService : Service() {
                 PendingIntent.FLAG_IMMUTABLE,
             )
             return Notification.Builder(context, CHANNEL_ID)
-                .setContentTitle("Recording trip")
-                .setContentText("BikeSpeed is tracking your ride")
+                .setContentTitle(context.getString(R.string.recording_trip_title))
+                .setContentText(context.getString(R.string.recording_trip_text))
                 .setSmallIcon(android.R.drawable.ic_menu_mylocation)
                 .setOngoing(true)
                 .setContentIntent(openApp)

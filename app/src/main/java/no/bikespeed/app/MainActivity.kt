@@ -4,15 +4,21 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.core.os.LocaleListCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import no.bikespeed.app.ui.BikeSpeedNavHost
 import no.bikespeed.app.ui.theme.BikeSpeedTheme
 
-class MainActivity : ComponentActivity() {
+// AppCompatActivity, not ComponentActivity: the per-app locale backport
+// (AppCompatDelegate.setApplicationLocales) needs it on pre-33 devices.
+class MainActivity : AppCompatActivity() {
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -43,6 +49,19 @@ class MainActivity : ComponentActivity() {
                     Manifest.permission.POST_NOTIFICATIONS,
                 )
             )
+        }
+
+        // The in-app language override. Unlike iOS (where String(localized:) ignored the
+        // override and needed a manual bundle lookup), setApplicationLocales makes every
+        // getString follow it — including the recording notification.
+        lifecycleScope.launch {
+            container.settingsStore.appLanguageFlow.collect { language ->
+                AppCompatDelegate.setApplicationLocales(
+                    language.languageTag
+                        ?.let { LocaleListCompat.forLanguageTags(it) }
+                        ?: LocaleListCompat.getEmptyLocaleList() // SYSTEM: follow the device
+                )
+            }
         }
 
         setContent {

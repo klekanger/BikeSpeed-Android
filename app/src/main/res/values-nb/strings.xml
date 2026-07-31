@@ -1,0 +1,90 @@
+<resources>
+    <string name="app_name">BikeSpeed</string>
+
+    <string name="compass_n">N</string>
+    <string name="compass_ne">NØ</string>
+    <string name="compass_e">Ø</string>
+    <string name="compass_se">SØ</string>
+    <string name="compass_s">S</string>
+    <string name="compass_sw">SV</string>
+    <string name="compass_w">V</string>
+    <string name="compass_nw">NV</string>
+
+    <string name="average_speed">Gjennomsnittshastighet</string>
+    <string name="max_speed">Maks hastighet</string>
+    <string name="direction_of_travel">Retning</string>
+    <string name="distance">Tilbakelagt distanse</string>
+    <string name="duration">Varighet</string>
+    <string name="auto_paused">Autopauset</string>
+    <string name="altitude">Høyde over havet</string>
+    <string name="climb">Stigning</string>
+    <string name="descent">Nedstigning</string>
+    <string name="position">GPS-posisjon</string>
+
+    <string name="logging">Logger</string>
+    <string name="gps_signal">GPS-signal</string>
+    <string name="trips">Turer</string>
+    <string name="settings">Innstillinger</string>
+
+    <string name="start">Start</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Fortsett</string>
+    <string name="stop">Stopp</string>
+    <string name="save">Lagre</string>
+    <string name="reset">Nullstill</string>
+    <string name="trip_saved">Tur lagret</string>
+    <string name="could_not_save_trip">Kunne ikke lagre turen</string>
+    <string name="save_failure_message">Turen er ikke tapt – den er fortsatt satt på pause. Prøv å lagre på nytt.</string>
+    <string name="ok">OK</string>
+
+    <string name="section_trip">Tur</string>
+    <string name="auto_pause">Autopause</string>
+    <string name="auto_pause_footer">Pauser distanse og tid automatisk når du står stille.</string>
+    <string name="section_gauge">Speedometer</string>
+    <string name="units">Enheter</string>
+    <string name="metric">Metrisk (km, m)</string>
+    <string name="imperial">Miles (mi, ft)</string>
+    <string name="language">Språk</string>
+    <string name="system">System</string>
+    <string name="back">Tilbake</string>
+
+    <string name="trip_log">Turlogg</string>
+    <string name="filter_trips">Filtrer turer</string>
+    <string name="range_all">Alle</string>
+    <string name="range_last_7_days">Siste 7 dager</string>
+    <string name="range_last_30_days">Siste 30 dager</string>
+    <string name="range_this_year">I år</string>
+    <string name="no_trips_logged">Ingen turer registrert ennå</string>
+    <string name="no_trips_in_period">Ingen turer i denne perioden – prøv et større datointervall.</string>
+    <string name="totals">Totalt</string>
+    <string name="personal_bests">Personlige rekorder</string>
+    <string name="rides">Turer</string>
+    <string name="total_distance">Total distanse</string>
+    <string name="total_time">Total tid</string>
+    <string name="total_ascent">Total stigning</string>
+    <string name="this_week">Denne uken</string>
+    <string name="this_month">Denne måneden</string>
+    <string name="longest_ride">Lengste tur</string>
+    <string name="fastest_average">Høyeste snittfart</string>
+    <string name="top_speed">Toppfart</string>
+    <string name="biggest_climb">Største stigning</string>
+
+    <string name="date">Dato</string>
+    <string name="total_descent">Total nedstigning</string>
+    <string name="route">Rute</string>
+    <string name="height_profile">Høydeprofil</string>
+    <string name="speed_profile">Fartsprofil</string>
+    <string name="no_altitude_data">Ingen høydedata for denne turen</string>
+    <string name="no_speed_data">Ingen fartsdata for denne turen</string>
+    <string name="delete_trip_question">Slette denne turen?</string>
+    <string name="cannot_be_undone">Dette kan ikke angres.</string>
+    <string name="delete_trip">Slett tur</string>
+    <string name="cancel">Avbryt</string>
+    <string name="export_gpx">Eksporter GPX</string>
+    <string name="marker_start">Start</string>
+    <string name="marker_finish">Mål</string>
+
+    <string name="recording_channel_name">Turopptak</string>
+    <string name="recording_trip_title">Logger tur</string>
+    <string name="recording_trip_text">BikeSpeed registrerer turen din</string>
+</resources>

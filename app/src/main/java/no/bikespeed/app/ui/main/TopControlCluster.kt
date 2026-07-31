@@ -1,5 +1,7 @@
 package no.bikespeed.app.ui.main
 
+import no.bikespeed.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Row
@@ -42,7 +44,7 @@ fun TopControlCluster(
         IconButton(onClick = onTripLog, modifier = Modifier.size(width = 40.dp, height = 36.dp)) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
-                contentDescription = "Trips",
+                contentDescription = stringResource(R.string.trips),
                 tint = GaugePalette.accent,
             )
         }
@@ -55,7 +57,7 @@ fun TopControlCluster(
         IconButton(onClick = onSettings, modifier = Modifier.size(width = 40.dp, height = 36.dp)) {
             Icon(
                 imageVector = Icons.Filled.Settings,
-                contentDescription = "Settings",
+                contentDescription = stringResource(R.string.settings),
                 tint = Color(0xFF9E9E9E),
             )
         }

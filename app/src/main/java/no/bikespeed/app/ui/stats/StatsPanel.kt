@@ -1,5 +1,7 @@
 package no.bikespeed.app.ui.stats
 
+import no.bikespeed.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
@@ -136,7 +138,7 @@ fun StatsPanel(
                 ),
                 paging = StatCellPagingState(
                     page = speedPage,
-                    names = listOf("Average speed", "Max speed"),
+                    names = listOf(stringResource(R.string.average_speed), stringResource(R.string.max_speed)),
                     onPageChange = { speedPage = it },
                 ),
                 modifier = Modifier.weight(1f),
@@ -148,11 +150,8 @@ fun StatsPanel(
             // the line stays blank — the arrow and compass letter carry the cell alone.
             StatCell(
                 icon = Icons.Filled.Navigation,
-                value = location.course?.let {
-                    // Localized via resources once the l10n step lands (nb swaps E/W → Ø/V).
-                    CompassDirection.fromCourse(it).abbreviationKey
-                } ?: "--",
-                caption = "Direction of travel",
+                value = location.course?.let { compassAbbreviation(CompassDirection.fromCourse(it)) } ?: "--",
+                caption = stringResource(R.string.direction_of_travel),
                 captionContent = StatCellCaption.Data(location.streetName),
                 iconRotationDegrees = location.course ?: 0.0,
                 iconTint = if (location.course == null) Color(0xFF9E9E9E) else GaugePalette.accent,
@@ -173,14 +172,14 @@ fun StatsPanel(
                     measurementSystem.formattedDistance(meters = trip.distance, locale = locale)
                 },
                 captionContent = if (trip.isAutoPaused) {
-                    StatCellCaption.Fixed("Auto-paused")
+                    StatCellCaption.Fixed(stringResource(R.string.auto_paused))
                 } else {
                     StatCellCaption.Name
                 },
                 iconTint = if (trip.isAutoPaused) Color(0xFF9E9E9E) else GaugePalette.accent,
                 paging = StatCellPagingState(
                     page = distancePage,
-                    names = listOf("Distance", "Duration"),
+                    names = listOf(stringResource(R.string.distance), stringResource(R.string.duration)),
                     onPageChange = { distancePage = it },
                 ),
                 pageIndicatorInset = bottomRowInset,
@@ -221,13 +220,30 @@ private val AltitudeCellPage.icon: ImageVector
     }
 
 private val AltitudeCellPage.displayName: String
-    get() = when (this) {
-        AltitudeCellPage.ALTITUDE -> "Altitude"
-        AltitudeCellPage.CLIMB -> "Climb"
-        AltitudeCellPage.DESCENT -> "Descent"
-        AltitudeCellPage.POSITION -> "Position"
-    }
+    @Composable get() = stringResource(
+        when (this) {
+            AltitudeCellPage.ALTITUDE -> R.string.altitude
+            AltitudeCellPage.CLIMB -> R.string.climb
+            AltitudeCellPage.DESCENT -> R.string.descent
+            AltitudeCellPage.POSITION -> R.string.position
+        }
+    )
 
+@Composable
+private fun compassAbbreviation(direction: CompassDirection): String = stringResource(
+    when (direction) {
+        CompassDirection.N -> R.string.compass_n
+        CompassDirection.NE -> R.string.compass_ne
+        CompassDirection.E -> R.string.compass_e
+        CompassDirection.SE -> R.string.compass_se
+        CompassDirection.S -> R.string.compass_s
+        CompassDirection.SW -> R.string.compass_sw
+        CompassDirection.W -> R.string.compass_w
+        CompassDirection.NW -> R.string.compass_nw
+    }
+)
+
+@Composable
 private fun altitudeCellValue(
     page: AltitudeCellPage,
     trip: TripStats,
@@ -243,7 +259,13 @@ private fun altitudeCellValue(
         trip.totalAscent?.let { measurementSystem.formattedAltitude(it, locale) } ?: "--"
     AltitudeCellPage.DESCENT ->
         trip.totalDescent?.let { measurementSystem.formattedAltitude(it, locale) } ?: "--"
-    AltitudeCellPage.POSITION -> formattedPosition(location.coordinate)
+    AltitudeCellPage.POSITION -> formattedPosition(
+        location.coordinate,
+        north = stringResource(R.string.compass_n),
+        south = stringResource(R.string.compass_s),
+        east = stringResource(R.string.compass_e),
+        west = stringResource(R.string.compass_w),
+    )
 }
 
 /**
@@ -266,10 +288,16 @@ internal fun formattedGrade(grade: Double?, locale: Locale): String? {
  * compass abbreviations' localization keys, so they follow the same east/west swap in
  * Norwegian (Ø/V) once the l10n step lands.
  */
-internal fun formattedPosition(coordinate: Coordinate?): String {
+internal fun formattedPosition(
+    coordinate: Coordinate?,
+    north: String = "N",
+    south: String = "S",
+    east: String = "E",
+    west: String = "W",
+): String {
     if (coordinate == null) return "--"
-    val latHemisphere = if (coordinate.latitude >= 0) "N" else "S"
-    val lonHemisphere = if (coordinate.longitude >= 0) "E" else "W"
+    val latHemisphere = if (coordinate.latitude >= 0) north else south
+    val lonHemisphere = if (coordinate.longitude >= 0) east else west
     val lat = String.format(Locale.ROOT, "%.5f°", abs(coordinate.latitude))
     val lon = String.format(Locale.ROOT, "%.5f°", abs(coordinate.longitude))
     return "$lat $latHemisphere\n$lon $lonHemisphere"

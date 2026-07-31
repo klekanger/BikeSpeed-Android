@@ -1,5 +1,7 @@
 package no.bikespeed.app.ui.detail
 
+import no.bikespeed.app.R
+import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -117,17 +119,17 @@ fun TripDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     loaded?.gpxFile?.let { gpx ->
                         IconButton(onClick = { shareGpx(context, gpx) }) {
-                            Icon(Icons.Filled.Share, contentDescription = "Export GPX")
+                            Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.export_gpx))
                         }
                     }
                     IconButton(onClick = { showDeleteConfirmation = true }) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Delete Trip", tint = Color(0xFFFF3B30))
+                        Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete_trip), tint = Color(0xFFFF3B30))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -148,25 +150,25 @@ fun TripDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                InfoRow(Icons.Filled.CalendarMonth, "Date",
+                InfoRow(Icons.Filled.CalendarMonth, stringResource(R.string.date),
                     DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", locale).withZone(zone).format(entry.startDate))
-                InfoRow(Icons.Filled.Schedule, "Duration", TripDurationFormatting.formatted(entry.duration, locale))
-                InfoRow(Icons.Filled.Route, "Distance", measurementSystem.formattedDistance(entry.distance, locale))
-                InfoRow(Icons.Filled.Speed, "Average speed", measurementSystem.formattedSpeed(entry.averageSpeed, locale = locale))
-                InfoRow(Icons.Filled.Bolt, "Max speed", measurementSystem.formattedSpeed(entry.maxSpeed, locale = locale))
+                InfoRow(Icons.Filled.Schedule, stringResource(R.string.duration), TripDurationFormatting.formatted(entry.duration, locale))
+                InfoRow(Icons.Filled.Route, stringResource(R.string.distance), measurementSystem.formattedDistance(entry.distance, locale))
+                InfoRow(Icons.Filled.Speed, stringResource(R.string.average_speed), measurementSystem.formattedSpeed(entry.averageSpeed, locale = locale))
+                InfoRow(Icons.Filled.Bolt, stringResource(R.string.max_speed), measurementSystem.formattedSpeed(entry.maxSpeed, locale = locale))
                 // Absent, not zero, on trips recorded without altitude data — a "0 m" row
                 // would claim the ride was flat.
                 entry.totalAscent?.let {
-                    InfoRow(Icons.Filled.Terrain, "Total ascent", measurementSystem.formattedAltitude(it, locale))
+                    InfoRow(Icons.Filled.Terrain, stringResource(R.string.total_ascent), measurementSystem.formattedAltitude(it, locale))
                 }
                 entry.totalDescent?.let {
-                    InfoRow(Icons.Filled.SouthEast, "Total descent", measurementSystem.formattedAltitude(it, locale))
+                    InfoRow(Icons.Filled.SouthEast, stringResource(R.string.total_descent), measurementSystem.formattedAltitude(it, locale))
                 }
             }
 
             loaded?.let { detail ->
                 if (detail.coordinates.size >= 2) {
-                    SectionTitle("Route")
+                    SectionTitle(stringResource(R.string.route))
                     RouteMap(
                         coordinates = detail.coordinates,
                         modifier = Modifier
@@ -176,20 +178,20 @@ fun TripDetailScreen(
                 }
             }
 
-            SectionTitle("Height profile")
+            SectionTitle(stringResource(R.string.height_profile))
             ChartOrPlaceholder(
                 loaded = loaded,
                 points = loaded?.profile?.map { it.distance to it.altitude },
-                emptyText = "No altitude data for this trip",
+                emptyText = stringResource(R.string.no_altitude_data),
             )
 
-            SectionTitle("Speed profile")
+            SectionTitle(stringResource(R.string.speed_profile))
             ChartOrPlaceholder(
                 loaded = loaded,
                 // Y in the user's unit: the model stores m/s, the view converts. X is
                 // distance, matching the height profile so the two charts share an axis.
                 points = loaded?.speedProfile?.map { it.distance to measurementSystem.speedValue(it.speed) },
-                emptyText = "No speed data for this trip",
+                emptyText = stringResource(R.string.no_speed_data),
             )
 
             Box(modifier = Modifier.height(24.dp))
@@ -199,8 +201,8 @@ fun TripDetailScreen(
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete this trip?") },
-            text = { Text("This cannot be undone.") },
+            title = { Text(stringResource(R.string.delete_trip_question)) },
+            text = { Text(stringResource(R.string.cannot_be_undone)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -210,10 +212,10 @@ fun TripDetailScreen(
                             onBack()
                         }
                     },
-                ) { Text("Delete Trip", color = Color(0xFFFF3B30)) }
+                ) { Text(stringResource(R.string.delete_trip), color = Color(0xFFFF3B30)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirmation = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -232,8 +234,8 @@ private fun RouteMap(coordinates: List<Coordinate>, modifier: Modifier = Modifie
         onMapLoaded = { mapLoaded = true },
     ) {
         Polyline(points = points, color = GaugePalette.accent, width = 10f)
-        Marker(state = MarkerState(position = points.first()), title = "Start")
-        Marker(state = MarkerState(position = points.last()), title = "Finish")
+        Marker(state = MarkerState(position = points.first()), title = stringResource(R.string.marker_start))
+        Marker(state = MarkerState(position = points.last()), title = stringResource(R.string.marker_finish))
     }
 
     // Frame the ride once the map is up: its bounding box plus padding, so the polyline
@@ -302,5 +304,5 @@ private fun shareGpx(context: android.content.Context, gpx: java.io.File) {
         putExtra(Intent.EXTRA_STREAM, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Export GPX"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.export_gpx)))
 }

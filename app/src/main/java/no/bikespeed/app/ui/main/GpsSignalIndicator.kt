@@ -1,5 +1,7 @@
 package no.bikespeed.app.ui.main
 
+import no.bikespeed.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -59,7 +61,7 @@ fun GpsSignalIndicator(
     ) {
         Icon(
             imageVector = if (quality == GpsSignalQuality.POOR) Icons.Filled.GpsOff else Icons.Filled.GpsFixed,
-            contentDescription = "GPS signal",
+            contentDescription = stringResource(R.string.gps_signal),
             tint = color,
             modifier = Modifier
                 .size(22.dp)
@@ -67,7 +69,7 @@ fun GpsSignalIndicator(
         )
         if (isTracking) {
             Text(
-                text = "Logging",
+                text = stringResource(R.string.logging),
                 fontSize = 12.sp,
                 color = Color(0xFF9E9E9E),
                 modifier = Modifier.graphicsLayer { this.alpha = alpha },

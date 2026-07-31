@@ -1,5 +1,7 @@
 package no.bikespeed.app.ui.main
 
+import no.bikespeed.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -73,13 +75,13 @@ fun TripControlBar(
     val primaryLabel: String
     val primaryIcon: ImageVector
     if (isAutoPaused) {
-        primaryLabel = "Stop"
+        primaryLabel = stringResource(R.string.stop)
         primaryIcon = Icons.Filled.Stop
     } else {
         when (state) {
-            TripState.IDLE -> { primaryLabel = "Start"; primaryIcon = Icons.Filled.PlayArrow }
-            TripState.RUNNING -> { primaryLabel = "Pause"; primaryIcon = Icons.Filled.Pause }
-            TripState.PAUSED -> { primaryLabel = "Resume"; primaryIcon = Icons.Filled.PlayArrow }
+            TripState.IDLE -> { primaryLabel = stringResource(R.string.start); primaryIcon = Icons.Filled.PlayArrow }
+            TripState.RUNNING -> { primaryLabel = stringResource(R.string.pause); primaryIcon = Icons.Filled.Pause }
+            TripState.PAUSED -> { primaryLabel = stringResource(R.string.resume); primaryIcon = Icons.Filled.PlayArrow }
         }
     }
 
@@ -129,7 +131,7 @@ fun TripControlBar(
             modifier = Modifier.weight(1f).testTag("saveButton"),
         ) {
             Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(text = " Save", fontSize = 15.sp)
+            Text(text = " " + stringResource(R.string.save), fontSize = 15.sp)
         }
 
         OutlinedButton(
@@ -139,7 +141,7 @@ fun TripControlBar(
             modifier = Modifier.weight(1f).testTag("resetButton"),
         ) {
             Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(text = " Reset", fontSize = 15.sp)
+            Text(text = " " + stringResource(R.string.reset), fontSize = 15.sp)
         }
     }
 
@@ -147,9 +149,9 @@ fun TripControlBar(
         AlertDialog(
             onDismissRequest = { showSavedConfirmation = false },
             confirmButton = {
-                TextButton(onClick = { showSavedConfirmation = false }) { Text("OK") }
+                TextButton(onClick = { showSavedConfirmation = false }) { Text(stringResource(R.string.ok)) }
             },
-            title = { Text("Trip saved") },
+            title = { Text(stringResource(R.string.trip_saved)) },
             modifier = Modifier.testTag("savedDialog"),
         )
     }
@@ -157,10 +159,10 @@ fun TripControlBar(
         AlertDialog(
             onDismissRequest = { showSaveFailure = false },
             confirmButton = {
-                TextButton(onClick = { showSaveFailure = false }) { Text("OK") }
+                TextButton(onClick = { showSaveFailure = false }) { Text(stringResource(R.string.ok)) }
             },
-            title = { Text("Couldn't save trip") },
-            text = { Text("Your ride hasn't been lost — it's still paused. Try saving again.") },
+            title = { Text(stringResource(R.string.could_not_save_trip)) },
+            text = { Text(stringResource(R.string.save_failure_message)) },
             modifier = Modifier.testTag("saveFailureDialog"),
         )
     }

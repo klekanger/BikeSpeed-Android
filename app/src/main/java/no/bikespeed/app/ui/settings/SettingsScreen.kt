@@ -1,5 +1,7 @@
 package no.bikespeed.app.ui.settings
 
+import no.bikespeed.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -61,10 +63,10 @@ fun SettingsScreen(
         containerColor = Color.Black,
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -83,12 +85,12 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            SettingsSection(title = "Trip") {
+            SettingsSection(title = stringResource(R.string.section_trip)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Auto-pause", color = Color.White, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.auto_pause), color = Color.White, modifier = Modifier.weight(1f))
                     Switch(
                         checked = autoPauseEnabled,
                         onCheckedChange = { settings.autoPauseEnabled = it },
@@ -96,19 +98,19 @@ fun SettingsScreen(
                     )
                 }
                 Text(
-                    text = "Pauses distance and time automatically when you stop.",
+                    text = stringResource(R.string.auto_pause_footer),
                     fontSize = 12.sp,
                     color = Color(0xFF9E9E9E),
                 )
             }
 
-            SettingsSection(title = "Gauge") {
+            SettingsSection(title = stringResource(R.string.section_gauge)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text("Max speed", color = Color.White, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.max_speed), color = Color.White, modifier = Modifier.weight(1f))
                     Text(
                         text = measurementSystem.formattedMaxGaugeSpeed(
                             fromCanonicalKmh = maxGaugeSpeedKmh,
@@ -140,7 +142,7 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSection(title = "Units") {
+            SettingsSection(title = stringResource(R.string.units)) {
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     MeasurementSystem.entries.forEachIndexed { index, system ->
                         SegmentedButton(
@@ -149,16 +151,16 @@ fun SettingsScreen(
                             shape = SegmentedButtonDefaults.itemShape(index, MeasurementSystem.entries.size),
                             modifier = Modifier.testTag("unit_${system.storageKey}"),
                         ) {
-                            Text(if (system == MeasurementSystem.METRIC) "Metric" else "Imperial")
+                            Text(stringResource(if (system == MeasurementSystem.METRIC) R.string.metric else R.string.imperial))
                         }
                     }
                 }
             }
 
-            SettingsSection(title = "Language") {
+            SettingsSection(title = stringResource(R.string.language)) {
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     val languages = listOf(
-                        AppLanguage.SYSTEM to "System",
+                        AppLanguage.SYSTEM to stringResource(R.string.system),
                         AppLanguage.NORWEGIAN to "Norsk",
                         AppLanguage.ENGLISH to "English",
                     )

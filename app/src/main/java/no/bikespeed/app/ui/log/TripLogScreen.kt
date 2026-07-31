@@ -1,5 +1,7 @@
 package no.bikespeed.app.ui.log
 
+import no.bikespeed.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -94,10 +96,10 @@ fun TripLogScreen(
         containerColor = Color.Black,
         topBar = {
             TopAppBar(
-                title = { Text("Trip Log") },
+                title = { Text(stringResource(R.string.trip_log)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -108,16 +110,16 @@ fun TripLogScreen(
                         ) {
                             Icon(
                                 Icons.Filled.FilterList,
-                                contentDescription = "Filter trips",
+                                contentDescription = stringResource(R.string.filter_trips),
                                 tint = if (dateRange == TripDateRange.ALL) Color.White else GaugePalette.accent,
                             )
                         }
                         DropdownMenu(expanded = filterMenuOpen, onDismissRequest = { filterMenuOpen = false }) {
                             val labels = mapOf(
-                                TripDateRange.ALL to "All",
-                                TripDateRange.LAST_7_DAYS to "Last 7 days",
-                                TripDateRange.LAST_30_DAYS to "Last 30 days",
-                                TripDateRange.THIS_YEAR to "This year",
+                                TripDateRange.ALL to stringResource(R.string.range_all),
+                                TripDateRange.LAST_7_DAYS to stringResource(R.string.range_last_7_days),
+                                TripDateRange.LAST_30_DAYS to stringResource(R.string.range_last_30_days),
+                                TripDateRange.THIS_YEAR to stringResource(R.string.range_this_year),
                             )
                             TripDateRange.entries.forEach { range ->
                                 DropdownMenuItem(
@@ -147,7 +149,7 @@ fun TripLogScreen(
             scalars == null -> Box(modifier = Modifier.fillMaxSize().padding(padding))
 
             entries.isEmpty() -> EmptyState(
-                text = "No trips logged yet",
+                text = stringResource(R.string.no_trips_logged),
                 modifier = Modifier.fillMaxSize().padding(padding).testTag("emptyLog"),
             )
 
@@ -171,7 +173,7 @@ fun TripLogScreen(
                     // vanished.
                     item {
                         EmptyState(
-                            text = "No trips in this period — try a wider date range.",
+                            text = stringResource(R.string.no_trips_in_period),
                             modifier = Modifier.fillMaxWidth().padding(32.dp).testTag("emptyRange"),
                         )
                     }
@@ -262,7 +264,7 @@ private fun TripLogSummarySection(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            listOf("Totals", "Personal bests").forEachIndexed { index, label ->
+            listOf(stringResource(R.string.totals), stringResource(R.string.personal_bests)).forEachIndexed { index, label ->
                 SegmentedButton(
                     selected = pane == index,
                     onClick = { pane = index },
@@ -272,28 +274,28 @@ private fun TripLogSummarySection(
         }
 
         if (pane == 0) {
-            SummaryRow(Icons.Filled.DirectionsBike, "Rides", summary.allTime.rideCount.toString())
-            SummaryRow(Icons.Filled.Route, "Total distance", measurementSystem.formattedDistance(summary.allTime.distance, locale))
-            SummaryRow(Icons.Filled.Schedule, "Total time", TripDurationFormatting.formatted(summary.allTime.duration, locale))
+            SummaryRow(Icons.Filled.DirectionsBike, stringResource(R.string.rides), summary.allTime.rideCount.toString())
+            SummaryRow(Icons.Filled.Route, stringResource(R.string.total_distance), measurementSystem.formattedDistance(summary.allTime.distance, locale))
+            SummaryRow(Icons.Filled.Schedule, stringResource(R.string.total_time), TripDurationFormatting.formatted(summary.allTime.duration, locale))
             // Hidden, not "0 m", when no ride ever recorded a climb.
             if (summary.allTime.ascent > 0) {
-                SummaryRow(Icons.Filled.Terrain, "Total ascent", measurementSystem.formattedAltitude(summary.allTime.ascent, locale))
+                SummaryRow(Icons.Filled.Terrain, stringResource(R.string.total_ascent), measurementSystem.formattedAltitude(summary.allTime.ascent, locale))
             }
-            SummaryRow(Icons.Filled.CalendarMonth, "This week", measurementSystem.formattedDistance(summary.thisWeek.distance, locale))
-            SummaryRow(Icons.Filled.CalendarMonth, "This month", measurementSystem.formattedDistance(summary.thisMonth.distance, locale))
+            SummaryRow(Icons.Filled.CalendarMonth, stringResource(R.string.this_week), measurementSystem.formattedDistance(summary.thisWeek.distance, locale))
+            SummaryRow(Icons.Filled.CalendarMonth, stringResource(R.string.this_month), measurementSystem.formattedDistance(summary.thisMonth.distance, locale))
         } else {
             summary.personalBests.longestRide?.let {
-                SummaryRow(Icons.Filled.Route, "Longest ride", measurementSystem.formattedDistance(it.distance, locale))
+                SummaryRow(Icons.Filled.Route, stringResource(R.string.longest_ride), measurementSystem.formattedDistance(it.distance, locale))
             }
             summary.personalBests.fastestAverage?.let {
-                SummaryRow(Icons.Filled.Speed, "Fastest average", measurementSystem.formattedSpeed(it.averageSpeed, locale = locale))
+                SummaryRow(Icons.Filled.Speed, stringResource(R.string.fastest_average), measurementSystem.formattedSpeed(it.averageSpeed, locale = locale))
             }
             summary.personalBests.highestMaxSpeed?.let {
-                SummaryRow(Icons.Filled.Bolt, "Top speed", measurementSystem.formattedSpeed(it.maxSpeed, locale = locale))
+                SummaryRow(Icons.Filled.Bolt, stringResource(R.string.top_speed), measurementSystem.formattedSpeed(it.maxSpeed, locale = locale))
             }
             // Absent, not zero, when nothing in the log ever recorded altitude.
             summary.personalBests.biggestClimb?.totalAscent?.let {
-                SummaryRow(Icons.Filled.Terrain, "Biggest climb", measurementSystem.formattedAltitude(it, locale))
+                SummaryRow(Icons.Filled.Terrain, stringResource(R.string.biggest_climb), measurementSystem.formattedAltitude(it, locale))
             }
         }
     }
