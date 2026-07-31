@@ -360,6 +360,171 @@ class TripManagerTest {
 
     // endregion
 
+    // region Auto-pause
+
+    /**
+     * GPS speed drifts around a standstill, so the pause has to wait out a debounce rather
+     * than firing on the first slow fix.
+     */
+    @Test
+    fun `auto-pause waits out the debounce`() {
+        val harness = TripTestHarness()
+        harness.anchor()
+        harness.trip.start()
+
+        harness.move(meters = 0.1, speed = 0.3)
+        harness.move(meters = 0.1, speed = 0.3)
+        assertWithMessage("under 3 s below the threshold is not a standstill yet")
+            .that(harness.trip.isAutoPaused).isFalse()
+
+        harness.move(meters = 0.1, speed = 0.3)
+        harness.move(meters = 0.1, speed = 0.3)
+        assertThat(harness.trip.isAutoPaused).isTrue()
+    }
+
+    /**
+     * The resume threshold sits above the pause threshold on purpose. A single cutoff would
+     * flap on and off as the standstill drift crosses it.
+     */
+    @Test
+    fun `auto-pause holds through speeds between the two thresholds`() {
+        val harness = TripTestHarness()
+        harness.anchor()
+        harness.trip.start()
+        autoPause(harness)
+
+        harness.move(meters = 0.7, speed = 0.7) // 2.5 km/h: above the pause threshold, below the resume one
+        assertWithMessage("hysteresis: this must not be read as riding again")
+            .that(harness.trip.isAutoPaused).isTrue()
+
+        harness.move(meters = 1.0, speed = 1.0) // 3.6 km/h: genuinely moving
+        assertThat(harness.trip.isAutoPaused).isFalse()
+    }
+
+    /**
+     * Freezing the clock is the whole point: average speed is distance ÷ active time, so
+     * counting time at every red light would drag the average down all ride.
+     */
+    @Test
+    fun `auto-pause freezes both distance and the clock`() {
+        val harness = TripTestHarness()
+        harness.anchor()
+        harness.trip.start()
+        harness.move(meters = 100.0, seconds = 10.0)
+        autoPause(harness)
+
+        val distanceAtPause = harness.trip.accumulatedDistance
+        val elapsedAtPause = harness.trip.elapsedActiveDuration
+
+        harness.clock.advance(120.0)
+        harness.trip.tick()
+
+        assertThat(harness.trip.accumulatedDistance).isWithin(0.5).of(distanceAtPause)
+        assertThat(harness.trip.elapsedActiveDuration).isWithin(0.01).of(elapsedAtPause)
+    }
+
+    /**
+     * An auto-pause is only ever entered on positive evidence — a fix reporting a standstill
+     * — so it has to be released once that evidence stops arriving. Accuracy often degrades
+     * *because* the phone is still, and a rider who pulled away through a poor-signal stretch
+     * would otherwise have that riding time silently vanish from the trip.
+     */
+    @Test
+    fun `auto-pause is released when fixes stop arriving to justify it`() {
+        val harness = TripTestHarness()
+        harness.anchor()
+        harness.trip.start()
+        autoPause(harness)
+
+        harness.clock.advance(6.0) // no usable fix for longer than the watchdog allows
+        harness.trip.tick()
+
+        assertThat(harness.trip.isAutoPaused).isFalse()
+        assertThat(harness.trip.state).isEqualTo(TripState.RUNNING)
+    }
+
+    /**
+     * A manual pause supersedes an auto-pause. Rolling forward must never resume a trip the
+     * rider deliberately stopped.
+     */
+    @Test
+    fun `moving again does not resume a manually paused trip`() {
+        val harness = TripTestHarness()
+        harness.anchor()
+        harness.trip.start()
+        harness.trip.pause()
+
+        harness.move(meters = 20.0, speed = 8.0)
+
+        assertThat(harness.trip.state).isEqualTo(TripState.PAUSED)
+        assertThat(harness.trip.accumulatedDistance).isEqualTo(0.0)
+    }
+
+    @Test
+    fun `auto-pause never engages when the setting is off`() {
+        val harness = TripTestHarness(autoPauseEnabled = false)
+        harness.anchor()
+        harness.trip.start()
+
+        autoPause(harness)
+
+        assertThat(harness.trip.isAutoPaused).isFalse()
+    }
+
+    @Test
+    fun `turning the setting off releases an active auto-pause`() {
+        val harness = TripTestHarness()
+        harness.anchor()
+        harness.trip.start()
+        autoPause(harness)
+        check(harness.trip.isAutoPaused)
+
+        harness.settings.autoPauseEnabled = false
+        // The release happens on the trip clock rather than instantly off a subscription,
+        // because an auto-paused rider is standing still and there may be no next fix to
+        // notice the toggle at. The rider sees it within 0.5 s; the test drives the same
+        // tick directly rather than waiting for it.
+        harness.trip.tick()
+
+        assertThat(harness.trip.isAutoPaused).isFalse()
+    }
+
+    /**
+     * An auto-pause is a flag on RUNNING, so it must not unlock Reset at a red light any more
+     * than it unlocks Save.
+     */
+    @Test
+    fun `an auto-paused trip cannot be reset`() {
+        val harness = TripTestHarness()
+        harness.anchor()
+        harness.trip.start()
+        harness.move(meters = 100.0, seconds = 10.0)
+        autoPause(harness)
+
+        assertThat(harness.trip.isAutoPaused).isTrue()
+        assertThat(harness.trip.canResetTrip).isFalse()
+    }
+
+    /**
+     * An auto-pause is still a recording: the only way out of it is a fix above the resume
+     * threshold, and with the phone locked at a red light that fix can only arrive if GPS
+     * stays on. Releasing background updates here would freeze the trip at the first light
+     * after the screen locks.
+     */
+    @Test
+    fun `an auto-pause does not release background updates`() {
+        val harness = TripTestHarness()
+        harness.anchor()
+        harness.trip.start()
+
+        autoPause(harness)
+
+        assertThat(harness.trip.isAutoPaused).isTrue()
+        assertThat(harness.locationSource.backgroundUpdatesEnabled).isTrue()
+    }
+
+    // endregion
+
     // region Background recording
 
     /**
@@ -407,6 +572,17 @@ class TripManagerTest {
         harness.move(meters = 50.0, seconds = 5.0)
 
         assertThat(harness.locationSource.backgroundUpdatesEnabled).isFalse()
+    }
+
+    // endregion
+
+    // region Helpers
+
+    /** Four fixes below the pause threshold, spanning more than the 3 s debounce. */
+    private fun autoPause(harness: TripTestHarness) {
+        repeat(4) {
+            harness.move(meters = 0.1, speed = 0.3)
+        }
     }
 
     // endregion
