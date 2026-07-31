@@ -1,0 +1,11 @@
+<resources>
+    <!-- Window theme only — all real theming happens in Compose (BikeSpeedTheme).
+         Parented on AppCompat (not Material Components) because MainActivity will
+         become an AppCompatActivity for the per-app locale backport, which requires
+         an AppCompat theme. The app is a fixed dark instrument panel. -->
+    <style name="Theme.BikeSpeed" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:navigationBarColor">@color/black</item>
+    </style>
+</resources>
