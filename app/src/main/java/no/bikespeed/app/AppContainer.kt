@@ -14,6 +14,7 @@ import no.bikespeed.app.platform.FusedLocationProvider
 import no.bikespeed.app.platform.GeocoderReverseGeocoder
 import no.bikespeed.app.platform.GravityTiltProvider
 import no.bikespeed.app.platform.HeadingProvider
+import no.bikespeed.app.platform.TripRecordingServiceController
 import no.bikespeed.app.service.AddressLookupManager
 import no.bikespeed.app.service.GpxExporter
 import no.bikespeed.app.service.LocationManager
@@ -63,6 +64,15 @@ class AppContainer(context: Context) {
     private val fusedLocation = FusedLocationProvider(context, locationManager)
     private val headingProvider = HeadingProvider(sensorManager, locationManager)
     val tiltProvider = GravityTiltProvider(sensorManager)
+
+    init {
+        // Background recording: TripManager's setBackgroundUpdates calls (on at start/resume,
+        // off at pause/reset, held through an auto-pause) drive the foreground service.
+        val serviceController = TripRecordingServiceController(context)
+        locationManager.backgroundUpdatesHandler = { enabled ->
+            serviceController.setRecording(enabled)
+        }
+    }
 
     private var sensorsStarted = false
 

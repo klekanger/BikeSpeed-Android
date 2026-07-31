@@ -38,6 +38,9 @@ class MainActivity : ComponentActivity() {
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION,
+                    // For the recording service's persistent notification. A denial doesn't
+                    // block recording — the service still runs, just without its pill.
+                    Manifest.permission.POST_NOTIFICATIONS,
                 )
             )
         }
