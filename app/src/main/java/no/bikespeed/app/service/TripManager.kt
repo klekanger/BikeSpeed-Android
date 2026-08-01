@@ -3,9 +3,14 @@ package no.bikespeed.app.service
 import java.time.Instant
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.util.UUID
 import no.bikespeed.app.model.AltitudeSample
 import no.bikespeed.app.model.ElevationAccumulator
@@ -196,6 +201,26 @@ class TripManager(
         releaseAutoPauseIfUnconfirmed()
         if (activeStart == null) return
         _elapsedActiveDuration.value = currentElapsedActiveDuration()
+    }
+
+    private var tickerJob: Job? = null
+
+    /**
+     * The production driver of [tick] — owned by the *app* scope, never a screen: the
+     * auto-pause fix-loss watchdog and the elapsed-time republish must survive the main
+     * screen leaving composition (Settings, the trip log) and the activity being destroyed
+     * while the foreground service records. The iOS analogue is TripManager's own repeating
+     * timer, which likewise never stops. Idempotent: restarting replaces the previous loop.
+     * Tests drive [tick] directly instead.
+     */
+    fun startTicker(scope: CoroutineScope) {
+        tickerJob?.cancel()
+        tickerJob = scope.launch {
+            while (isActive) {
+                delay(TICK_INTERVAL_MILLISECONDS)
+                tick()
+            }
+        }
     }
 
     fun start() {
@@ -561,6 +586,9 @@ class TripManager(
         (toEpochMilli() - other.toEpochMilli()) / 1000.0
 
     companion object {
+        /** Cadence of the production [startTicker] loop. */
+        const val TICK_INTERVAL_MILLISECONDS: Long = 500L
+
         /** Guards against GPS teleport artifacts corrupting the trip total. ~120 km/h in m/s. */
         const val MAX_PLAUSIBLE_SPEED: Double = 120.0 / 3.6
 

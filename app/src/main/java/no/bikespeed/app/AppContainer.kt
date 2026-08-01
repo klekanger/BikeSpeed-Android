@@ -72,6 +72,11 @@ class AppContainer(context: Context) {
         locationManager.backgroundUpdatesHandler = { enabled ->
             serviceController.setRecording(enabled)
         }
+
+        // The trip clock's 0.5 s driver lives here, at app scope — not in any screen, so the
+        // auto-pause watchdog and the elapsed republish survive navigation and activity
+        // destruction mid-ride. See TripManager.startTicker.
+        tripManager.startTicker(appScope)
     }
 
     private var sensorsStarted = false

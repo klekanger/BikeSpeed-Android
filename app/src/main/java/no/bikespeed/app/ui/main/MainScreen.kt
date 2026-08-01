@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -20,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.util.Locale
-import kotlinx.coroutines.delay
 import no.bikespeed.app.AppContainer
 import no.bikespeed.app.ui.gauge.SpeedometerGauge
 import no.bikespeed.app.ui.stats.LocationReadout
@@ -43,14 +41,9 @@ fun MainScreen(
     val locationManager = container.locationManager
     val settings = container.settingsStore
 
-    // The production driver of the trip clock: retire unconfirmed auto-pauses and republish
-    // elapsed time between fixes. Tests call tick() directly instead.
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(500)
-            tripManager.tick()
-        }
-    }
+    // The trip clock's tick loop is NOT here: it lives at app scope (AppContainer starts
+    // TripManager.startTicker), because a screen-owned driver dies when the rider opens
+    // Settings or the trip log — taking the auto-pause watchdog with it mid-ride.
 
     // Live state.
     val displaySpeed by locationManager.displaySpeedFlow.collectAsState()
