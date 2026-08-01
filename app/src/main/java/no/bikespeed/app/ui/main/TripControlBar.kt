@@ -2,11 +2,13 @@ package no.bikespeed.app.ui.main
 
 import no.bikespeed.app.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Pause
@@ -105,10 +107,11 @@ fun TripControlBar(
                 containerColor = GaugePalette.accent,
                 contentColor = Color.Black,
             ),
+            contentPadding = ButtonLabelPadding,
             modifier = Modifier.weight(1f).testTag("primaryButton"),
         ) {
             Icon(primaryIcon, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(text = " $primaryLabel", fontSize = 15.sp)
+            ButtonLabel(" $primaryLabel")
         }
 
         OutlinedButton(
@@ -136,20 +139,22 @@ fun TripControlBar(
             },
             enabled = tripManager.canSaveTrip && !isSaving,
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF34C759)),
+            contentPadding = ButtonLabelPadding,
             modifier = Modifier.weight(1f).testTag("saveButton"),
         ) {
             Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(text = " " + stringResource(R.string.save), fontSize = 15.sp)
+            ButtonLabel(" " + stringResource(R.string.save))
         }
 
         OutlinedButton(
             onClick = { tripManager.reset() },
             enabled = tripManager.canResetTrip,
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF3B30)),
+            contentPadding = ButtonLabelPadding,
             modifier = Modifier.weight(1f).testTag("resetButton"),
         ) {
             Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(text = " " + stringResource(R.string.reset), fontSize = 15.sp)
+            ButtonLabel(" " + stringResource(R.string.reset))
         }
     }
 
@@ -174,4 +179,21 @@ fun TripControlBar(
             modifier = Modifier.testTag("saveFailureDialog"),
         )
     }
+}
+
+/**
+ * The three buttons split the bar's width evenly, which is too narrow for Material's default
+ * 24 dp content padding once the labels are Norwegian ("Fortsett", "Nullstill") — the text
+ * wrapped to two lines. Tighter padding plus a single line that shrinks to fit keeps every
+ * locale's label on one line.
+ */
+private val ButtonLabelPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+
+@Composable
+private fun ButtonLabel(text: String) {
+    Text(
+        text = text,
+        maxLines = 1,
+        autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 15.sp, stepSize = 0.5.sp),
+    )
 }
