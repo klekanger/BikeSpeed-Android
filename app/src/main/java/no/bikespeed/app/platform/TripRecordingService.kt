@@ -34,10 +34,14 @@ class TripRecordingService : Service() {
         )
     }
 
-    // START_STICKY: if the OS reclaims the process mid-ride, restart the service — the
-    // notification and location hold come back, and the rider's recording continues rather
-    // than silently dying with the process.
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    // START_NOT_STICKY: the trip lives in memory, so if the OS reclaims the process mid-ride
+    // there is nothing left to record. A sticky restart would come back into a fresh process
+    // whose TripManager is idle and whose sensors are stopped — an ongoing "Recording trip"
+    // notification and a location-type foreground service that no code path can ever stop
+    // (the only exit is TripManager.pause()/reset() on a trip that no longer exists), lying
+    // about a recording while draining the battery. iOS behaves the same way: background
+    // location dies with the app.
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_NOT_STICKY
 
     override fun onBind(intent: Intent?): IBinder? = null
 

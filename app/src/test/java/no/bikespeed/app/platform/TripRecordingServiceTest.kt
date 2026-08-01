@@ -1,6 +1,7 @@
 package no.bikespeed.app.platform
 
 import android.app.NotificationManager
+import android.app.Service
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -8,6 +9,7 @@ import com.google.common.truth.Truth.assertWithMessage
 import no.bikespeed.app.service.LocationManager
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 
 /**
@@ -42,6 +44,24 @@ class TripRecordingServiceTest {
         assertThat(channel).isNotNull()
         assertWithMessage("a status pill must not buzz the handlebar every ride")
             .that(channel.importance).isEqualTo(NotificationManager.IMPORTANCE_LOW)
+    }
+
+    /**
+     * START_NOT_STICKY, deliberately: the trip lives in memory, so after a process death
+     * there is nothing left to record. A sticky restart would come back into a fresh process
+     * whose TripManager is idle and whose sensors are stopped — an ongoing "Recording trip"
+     * notification and a location foreground service that no code path can ever stop,
+     * lying about a recording that no longer exists. iOS behaves the same way: background
+     * location dies with the app.
+     */
+    @Test
+    fun `a restart after process death does not resurrect a dead recording`() {
+        val service = Robolectric.buildService(TripRecordingService::class.java).create().get()
+
+        val result = service.onStartCommand(null, 0, 1)
+
+        assertWithMessage("a sticky restart would be a permanent zombie foreground service")
+            .that(result).isEqualTo(Service.START_NOT_STICKY)
     }
 
     @Test
