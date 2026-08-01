@@ -1,7 +1,9 @@
 package no.bikespeed.app.platform
 
 import android.location.Location
+import android.os.SystemClock
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -24,6 +26,7 @@ class LocationFixMapperTest {
         bearing = 90f
         bearingAccuracyDegrees = 10f
         time = 1_760_000_000_000L
+        elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
     }
 
     @Test
@@ -39,7 +42,37 @@ class LocationFixMapperTest {
         assertThat(fix.speedAccuracy!!).isWithin(0.001).of(1.0)
         assertThat(fix.course!!).isWithin(0.001).of(90.0)
         assertThat(fix.courseAccuracy!!).isWithin(0.001).of(10.0)
-        assertThat(fix.timestamp.toEpochMilli()).isEqualTo(1_760_000_000_000L)
+        // A brand-new fix (zero age in the monotonic domain) is stamped "now" on the device
+        // clock — NOT with Location.time, which lives on the GPS clock. See the test below.
+        // (Tolerance because the wall clock ticks between mapping and asserting.)
+        val ageMillis = System.currentTimeMillis() - fix.timestamp.toEpochMilli()
+        assertThat(ageMillis).isAtLeast(0L)
+        assertThat(ageMillis).isLessThan(1_000L)
+    }
+
+    /**
+     * `Location.time` is GPS/UTC-derived while the filter pipeline ages fixes against the
+     * device clock — two domains Android documents as mutually inconsistent, so a device
+     * clock a few seconds off GPS time would make *every* fix look stale and the app
+     * permanently frozen. The mapper therefore measures the fix's age where it is exact
+     * (elapsedRealtimeNanos, the monotonic clock both stamps share) and re-expresses the
+     * timestamp as "device-clock now minus that age".
+     */
+    @Test
+    fun `the timestamp comes from the monotonic clock so device-clock skew cannot stale every fix`() {
+        val location = fullLocation().apply {
+            // A device clock 30 s ahead of GPS time: Location.time reads 30 s in the past
+            // even though the fix is only 2 s old.
+            time = System.currentTimeMillis() - 30_000L
+            elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() - 2_000_000_000L
+        }
+
+        val fix = location.toLocationFix()
+
+        val ageMillis = System.currentTimeMillis() - fix.timestamp.toEpochMilli()
+        assertWithMessage("a 2 s old fix must age as 2 s, not as the 30 s clock skew")
+            .that(ageMillis).isAtLeast(2_000L)
+        assertThat(ageMillis).isLessThan(3_000L)
     }
 
     @Test
