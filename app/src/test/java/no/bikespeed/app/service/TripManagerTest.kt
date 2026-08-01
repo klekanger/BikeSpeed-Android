@@ -235,6 +235,46 @@ class TripManagerTest {
         assertThat(harness.trip.accumulatedDistance).isEqualTo(0.0)
     }
 
+    /**
+     * Under the floor is *deferred*, not thrown away. Measuring every step from the one
+     * before it would mean riding slower than the floor per fix accrues nothing however long
+     * it goes on — at 1 Hz and a 2.5 m floor that is everything under 9 km/h, i.e. the whole
+     * grind up a steep hill.
+     */
+    @Test
+    fun `steps under the jitter floor sum until they clear it`() {
+        val harness = TripTestHarness()
+        harness.anchor()
+        harness.trip.start()
+
+        // 2 m/s is under the floor, so no single step is believable on its own — but ten
+        // seconds of it is 20 m of real hill, and the rider must get credit for it.
+        repeat(10) { harness.move(meters = 2.0, horizontalAccuracy = 5.0) }
+
+        assertThat(harness.trip.accumulatedDistance).isWithin(1.0).of(20.0)
+    }
+
+    /**
+     * The counterpart to the test above, and the reason the floor exists at all: summing must
+     * not turn a parked bike's wander into distance. Auto-pause is off here because the rider
+     * may switch it off, which leaves the floor as the only guard.
+     */
+    @Test
+    fun `wander around one spot still accrues nothing`() {
+        val harness = TripTestHarness(autoPauseEnabled = false)
+        harness.anchor()
+        harness.trip.start()
+
+        // Fixes that step either side of one point rather than walking away from it: the
+        // distance from the held anchor stays bounded by the wander and never clears the floor.
+        repeat(10) {
+            harness.move(meters = 1.0, speed = 0.0, horizontalAccuracy = 5.0)
+            harness.move(meters = -1.0, speed = 0.0, horizontalAccuracy = 5.0)
+        }
+
+        assertThat(harness.trip.accumulatedDistance).isEqualTo(0.0)
+    }
+
     // endregion
 
     // region Teleport guard

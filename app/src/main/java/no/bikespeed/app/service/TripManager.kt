@@ -469,8 +469,23 @@ class TripManager(
         val advanced = delta > max(JITTER_FLOOR_METERS, 0.5 * fix.horizontalAccuracy)
         if (advanced) {
             _accumulatedDistance.value = accumulatedDistance + delta
+            anchor(fix)
+        } else {
+            // **Hold the anchor** rather than advance it: a sub-floor step is deferred, not
+            // discarded. Advancing here would measure every step from the one before it, so
+            // riding slower than the floor per fix accrues *nothing* however long it lasts —
+            // at 1 Hz and a 2.5 m floor that is everything under 9 km/h, which is exactly the
+            // grind up a steep hill (a real Kongsveien climb lost 14 % of its distance this
+            // way). Holding lets successive small steps sum until they clear the floor
+            // together, so the metres arrive late but they do arrive.
+            //
+            // This does not weaken the guard it belongs to. A parked bike's fixes wander
+            // around one point, so the distance from a held anchor stays bounded by the
+            // wander and keeps failing the test; only a rider genuinely moving away walks it
+            // past the floor. The fix still counts as accepted, so a stale-anchor streak is
+            // cleared just as anchor() would.
+            teleportRejections = 0
         }
-        anchor(fix)
 
         val usableAltitude = fix.usableAltitude(ceiling = MAX_ALTITUDE_VERTICAL_ACCURACY)
         if (usableAltitude != null &&
