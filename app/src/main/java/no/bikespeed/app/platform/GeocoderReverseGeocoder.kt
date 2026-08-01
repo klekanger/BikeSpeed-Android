@@ -4,6 +4,7 @@ import android.content.Context
 import android.location.Address
 import android.location.Geocoder
 import android.os.Build
+import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.Dispatchers
@@ -46,9 +47,22 @@ class GeocoderReverseGeocoder(private val context: Context) : ReverseGeocoder {
         } else {
             withContext(Dispatchers.IO) {
                 @Suppress("DEPRECATION")
-                geocoder.getFromLocation(fix.latitude, fix.longitude, 1) ?: emptyList()
+                requireBackend(geocoder.getFromLocation(fix.latitude, fix.longitude, 1))
             }
         }
         return addresses.firstOrNull()?.thoroughfare
+    }
+
+    companion object {
+        /**
+         * Pre-33, `getFromLocation` documents a null return as possibly meaning "no backend
+         * service available" — a *failure*. Coercing it to an empty list would report a
+         * resolved "no street here": the held street would blank, the failure backoff would
+         * never arm, and the manager would keep polling a dead service at full cadence.
+         * Only an actual (possibly empty) list is a resolved answer — iOS draws the same
+         * line, treating only geocodeFoundNoResult as resolved.
+         */
+        internal fun requireBackend(addresses: List<Address>?): List<Address> =
+            addresses ?: throw IOException("no geocoder backend available")
     }
 }
