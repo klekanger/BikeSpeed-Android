@@ -23,7 +23,10 @@ class MainActivity : AppCompatActivity() {
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
-        if (grants.values.any { it }) {
+        // Only a *location* grant unlocks the sensors — the same request can carry
+        // POST_NOTIFICATIONS, whose grant must not start a location request the app has no
+        // right to make. See PermissionGating.
+        if (PermissionGating.grantsLocation(grants)) {
             container.startSensors()
         }
     }
@@ -39,16 +42,13 @@ class MainActivity : AppCompatActivity() {
 
         if (hasLocationPermission()) {
             container.startSensors()
-        } else {
-            permissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    // For the recording service's persistent notification. A denial doesn't
-                    // block recording — the service still runs, just without its pill.
-                    Manifest.permission.POST_NOTIFICATIONS,
-                )
-            )
+        }
+        val missing = PermissionGating.permissionsToRequest(
+            hasLocation = hasLocationPermission(),
+            hasNotifications = hasPermission(Manifest.permission.POST_NOTIFICATIONS),
+        )
+        if (missing.isNotEmpty()) {
+            permissionLauncher.launch(missing.toTypedArray())
         }
 
         // The in-app language override. Unlike iOS (where String(localized:) ignored the
@@ -71,7 +71,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Either grant will do: "approximate location only" is a choice the system dialog
+    // offers, and a coarse-only pipeline degrades to a wide accuracy gate, not a crash.
     private fun hasLocationPermission(): Boolean =
-        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
+        hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) ||
+            hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+
+    private fun hasPermission(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
 }
