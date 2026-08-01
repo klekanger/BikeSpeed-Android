@@ -41,6 +41,7 @@ class BarometerAltitudeSource(
         private set
 
     private var baseline: Double? = null
+    private var smoothedAltitude: Double? = null
     private var isUpdating = false
 
     override fun startUpdates() {
@@ -54,6 +55,7 @@ class BarometerAltitudeSource(
         // Cleared unconditionally, ahead of the listener guard: a reading from before the
         // stop must never be readable afterwards, whether or not updates were running.
         baseline = null
+        smoothedAltitude = null
         relativeAltitude = null
         if (!isUpdating) return
         isUpdating = false
@@ -66,10 +68,23 @@ class BarometerAltitudeSource(
 
     /** Split from the SensorEvent (which tests can't construct) so the baseline logic is testable. */
     internal fun onPressureReading(hPa: Double) {
+        // Low-passed before anything reads it: iOS hands TripManager CMAltimeter's
+        // already-filtered relative altitude, but raw Android pressure transients (wind
+        // gusts, doors, HVAC) routinely exceed 0.12 hPa ≈ 1 m — the exact size of
+        // TripManager's barometer deadband, so unsmoothed samples bank phantom
+        // ascent/descent on a flat gusty ride. At SENSOR_DELAY_NORMAL's ~5 Hz this α is a
+        // ~2 s time constant: single-sample spikes collapse to centimetres, while a real
+        // climb passes through with about the same lag the iOS altimeter's own filter costs.
         val altitude = PressureAltitude.metersFromPressure(hPa)
-        val base = baseline ?: altitude.also { baseline = it }
-        relativeAltitude = altitude - base
+        val smoothed = smoothedAltitude?.let { it + SMOOTHING_FACTOR * (altitude - it) } ?: altitude
+        smoothedAltitude = smoothed
+        val base = baseline ?: smoothed.also { baseline = it }
+        relativeAltitude = smoothed - base
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    private companion object {
+        const val SMOOTHING_FACTOR = 0.1
+    }
 }
