@@ -40,9 +40,14 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
+        <!-- configChanges: handle the language override in-place. Without it,
+             setApplicationLocales recreates the activity — a visible black flash mid-Settings.
+             Compose recomposes every stringResource from the updated configuration, so
+             nothing else is needed; AppCompat honours the same attribute pre-33. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:configChanges="locale|layoutDirection"
             android:screenOrientation="portrait"
             tools:ignore="DiscouragedApi">
             <intent-filter>
