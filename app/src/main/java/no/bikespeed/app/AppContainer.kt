@@ -19,6 +19,7 @@ import no.bikespeed.app.service.AddressLookupManager
 import no.bikespeed.app.service.GpxExporter
 import no.bikespeed.app.service.LocationManager
 import no.bikespeed.app.service.NowProvider
+import no.bikespeed.app.model.TripState
 import no.bikespeed.app.service.SettingsStore
 import no.bikespeed.app.service.TripManager
 
@@ -79,11 +80,15 @@ class AppContainer(context: Context) {
         tripManager.startTicker(appScope)
     }
 
-    private var sensorsStarted = false
+    /** Internal so tests can pin the release policy below. */
+    internal var sensorsStarted = false
+        private set
 
     /**
      * Starts the live sensors. Requires the location permission; idempotent, so the
-     * permission callback and a fresh launch with the grant already in place can both call it.
+     * permission callback, a fresh launch with the grant already in place, and every
+     * return to the foreground (which may follow a [releaseSensorsUnlessRecording]) can
+     * all call it.
      */
     fun startSensors() {
         if (sensorsStarted) return
@@ -91,6 +96,22 @@ class AppContainer(context: Context) {
         fusedLocation.start()
         headingProvider.start()
         tiltProvider.start()
+    }
+
+    /**
+     * Releases the live sensors while nothing needs them — called when the app leaves the
+     * foreground. A RUNNING trip (auto-paused included: the resume fix must be able to
+     * arrive) keeps everything on; the foreground service is holding the process for
+     * exactly that. IDLE and PAUSED accrue nothing, so high-accuracy GPS plus two
+     * 16–20 Hz sensor listeners under a locked screen would be pure battery drain.
+     */
+    fun releaseSensorsUnlessRecording() {
+        if (tripManager.state == TripState.RUNNING) return
+        if (!sensorsStarted) return
+        sensorsStarted = false
+        fusedLocation.stop()
+        headingProvider.stop()
+        tiltProvider.stop()
     }
 
     init {

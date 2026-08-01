@@ -40,9 +40,8 @@ class MainActivity : AppCompatActivity() {
         // Designed to run mounted on a bike handlebar: the screen must not sleep mid-ride.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        if (hasLocationPermission()) {
-            container.startSensors()
-        }
+        // Sensor start lives in onStart, which follows: it must also cover every return to
+        // the foreground after onStop released the sensors.
         val missing = PermissionGating.permissionsToRequest(
             hasLocation = hasLocationPermission(),
             hasNotifications = hasPermission(Manifest.permission.POST_NOTIFICATIONS),
@@ -69,6 +68,21 @@ class MainActivity : AppCompatActivity() {
                 BikeSpeedNavHost(container = container)
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (hasLocationPermission()) {
+            container.startSensors()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // No trip recording? Then a locked screen doesn't need high-accuracy GPS and two
+        // 16–20 Hz sensor listeners running for the life of the process. A RUNNING trip
+        // keeps everything on — the foreground service is holding the process for it.
+        container.releaseSensorsUnlessRecording()
     }
 
     // Either grant will do: "approximate location only" is a choice the system dialog
