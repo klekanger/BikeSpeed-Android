@@ -3,7 +3,12 @@ package no.bikespeed.app.service
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import no.bikespeed.app.fixtures.FakeLocationSource
 import no.bikespeed.app.fixtures.Fix
@@ -183,6 +188,51 @@ class AddressLookupManagerTest {
         advanceUntilIdle()
 
         assertThat(harness.manager.streetName).isNull()
+    }
+
+    /**
+     * A cancellation is a teardown, not a geocoder failure: it must not arm the exponential
+     * backoff (which would delay the next genuine attempt for no reason) and must not be
+     * swallowed as a handled error.
+     */
+    @Test
+    fun `a cancelled lookup is not a geocoder failure`() = runTest {
+        val lookupJob = Job()
+        val harness = Harness(CoroutineScope(coroutineContext + lookupJob))
+        harness.geocoder.gate = CompletableDeferred()
+
+        harness.move(meters = 0.0)
+        runCurrent() // the lookup is now suspended inside the geocoder
+        lookupJob.cancelChildren()
+        advanceUntilIdle()
+
+        // The next attempt must be allowed at the base 10 s interval — a failure would have
+        // doubled it to 20 s and gated this one out.
+        harness.geocoder.gate = null
+        harness.move(meters = 100.0, seconds = 12.0)
+        advanceUntilIdle()
+
+        assertWithMessage("a cancellation must not arm the failure backoff")
+            .that(harness.geocoder.requests).hasSize(2)
+        assertThat(harness.manager.streetName).isEqualTo("Storgata")
+    }
+
+    /**
+     * The guard is set before the launch; a launch into an already-cancelled scope never
+     * runs its body *or* its finally, so the reset has to ride the job's completion — else
+     * the guard latches true and every future lookup is silently dropped.
+     */
+    @Test
+    fun `a lookup launched into a cancelled scope does not latch the in-progress guard`() = runTest {
+        val lookupScope = CoroutineScope(coroutineContext + Job())
+        val harness = Harness(lookupScope)
+        lookupScope.cancel()
+
+        harness.move(meters = 0.0)
+        advanceUntilIdle() // let the stillborn job finalize; the old finally never would
+
+        assertWithMessage("a coroutine that never ran cannot be 'in progress'")
+            .that(harness.manager.isLookupInProgress).isFalse()
     }
 
     /** While a lookup is in flight, further fixes must not start another. */

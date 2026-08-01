@@ -3,6 +3,7 @@ package no.bikespeed.app.service
 import java.time.Instant
 import kotlin.math.min
 import kotlin.math.pow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,7 +63,10 @@ class AddressLookupManager(
     /** Time of the last *attempt*, resolved or not — anchor for the interval gate. */
     private var lastLookupAttempt: Instant? = null
 
-    private var isLookupInProgress = false
+    /** Internal so tests can pin that a launch into a dead scope can't latch it true. */
+    internal var isLookupInProgress = false
+        private set
+
     private var consecutiveFailures = 0
 
     init {
@@ -96,20 +100,25 @@ class AddressLookupManager(
         isLookupInProgress = true
         this.lastLookupAttempt = now.now()
 
+        // The guard reset rides the job's *completion*, not a `finally`: a launch into a
+        // scope that is already cancelled never runs its body or its finally, which would
+        // latch the guard true and silently drop every future lookup.
         scope.launch {
             try {
                 // A resolved null is not a failure — genuinely no street here. Blank the
                 // caption and let the gates advance.
                 resolve(geocoder.streetName(fix), fix)
+            } catch (e: CancellationException) {
+                // A teardown, not a geocoder failure — arming the backoff here would delay
+                // the next genuine attempt for no reason.
+                throw e
             } catch (_: Exception) {
                 // Network down or throttled. Keep the last resolved street and leave
                 // lastLookupFix put so the next fix retries — but back off first, so a
                 // throttle doesn't become hammering.
                 consecutiveFailures += 1
-            } finally {
-                isLookupInProgress = false
             }
-        }
+        }.invokeOnCompletion { isLookupInProgress = false }
     }
 
     private fun resolve(street: String?, fix: LocationFix) {
