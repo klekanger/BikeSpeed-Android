@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-BikeSpeed for Android — a full port of the iOS BikeSpeed app (at
-`~/Development/privat/apps/BikeSpeed`, whose test suite is the behavioural spec): a fullscreen
+BikeSpeed for Android — a full port of the iOS BikeSpeed app
+(https://github.com/klekanger/BikeSpeed, whose test suite is the behavioural spec): a fullscreen
 bike speedometer with an 80s-car-style analog gauge showing live GPS speed, a 2×2 paged stats
 panel (average/max speed, direction + street name, distance/duration, altitude/climb/descent/
 GPS position with live gradient), Start/Pause/Reset trip controls with auto-pause, background
@@ -20,7 +20,7 @@ dormant `TripSyncEngine` seam for a future REST backend shared with iOS), Google
 ## Commands
 
 ```
-./gradlew testDebugUnitTest    # the full suite (~256 tests, pure JVM + Robolectric)
+./gradlew testDebugUnitTest    # the full suite (~275 tests, pure JVM + Robolectric)
 ./gradlew assembleDebug
 ```
 
@@ -55,6 +55,9 @@ The Maps API key goes in `local.properties` as `MAPS_API_KEY=…` (git-ignored; 
   hand-picked, not platform-formatted).
 - **Sentinels → nulls at one boundary.** `platform/LocationFixMapper.kt` is the only place
   Android's `has*()` flags are translated; everything downstream reads "null means unknown".
+  It also stamps the fix's timestamp in the *device-clock* domain, deriving the fix's age
+  from `elapsedRealtimeNanos` — never "simplify" back to `Location.time`, which lives on the
+  GPS clock: a device clock a few seconds off GPS time would stale every fix forever.
 - **Distance is haversine (`GeoMath`)**, not `Location.distanceBetween`, so the whole trip
   pipeline runs as plain JVM tests.
 - `service/TripManager.kt` is the heart: teleport guard (120 km/h, 3-strike re-anchor),
@@ -62,7 +65,15 @@ The Maps API key goes in `local.properties` as `MAPS_API_KEY=…` (git-ignored; 
   clock, resume ≥3 km/h immediately, 5 s wall-clock watchdog), elevation-source latch
   (barometer preferred with a 10-fix grace, GPS fallback, latched per trip; deadbands
   1 m/3 m; 15 s continuity gap), route track at 10 m / height profile at 25 m, save floor
-  5 s + 10 m. Read the iOS `TripManager.swift` doc comments before touching any number.
+  5 s + 10 m. Read the iOS `TripManager.swift` doc comments (in the iOS repo above) before
+  touching any number. The production 0.5 s driver of `tick()` is `TripManager.startTicker`,
+  owned by the *app* scope in `AppContainer` — never move it (back) into a screen: a
+  screen-owned loop dies when the rider opens Settings or the trip log, taking the
+  auto-pause watchdog and the trip clock with it mid-ride.
+- The platform barometer (`platform/BarometerAltitudeSource.kt`) low-passes raw pressure
+  (EMA, α 0.1) before anything reads it: iOS hands TripManager CMAltimeter's pre-filtered
+  relative altitude, and raw Android transients (~0.12 hPa ≈ 1 m) would otherwise cross the
+  1 m deadband and bank phantom climb on a flat gusty ride.
 - `service/SettingsStore.kt` uses SharedPreferences (not DataStore — `autoPauseEnabled` is
   read synchronously in the fix path) with `contains()` so an unset auto-pause reads
   default-ON while an explicit off survives. Same key names as iOS.
@@ -74,12 +85,17 @@ The Maps API key goes in `local.properties` as `MAPS_API_KEY=…` (git-ignored; 
   sync metadata (`updatedAt`/`deletedAt`/`syncedAt`/`remoteId`) is written but read by
   nothing yet — it stays dormant for the future REST backend.
 - `TripDataStack.save` **throws** on failure (reset() destroys the only other copy); the
-  control bar resets only after the write lands. Every mutation notifies `TripSyncEngine`,
-  and `TripDataStackTest` fails if a new mutation path forgets.
+  control bar resets only after the write lands, and Save is **single-flight** (an unguarded
+  double-tap would write the ride twice under fresh UUIDs). Every mutation notifies
+  `TripSyncEngine`, and `TripDataStackTest` fails if a new mutation path forgets.
 - Background recording = `TripRecordingService` (foreground, `location` type), driven
   entirely through `LocationManager.backgroundUpdatesHandler` by TripManager's lifecycle
   calls; **an auto-pause keeps it alive** (its only exit is a fix that can't arrive if GPS
-  is released).
+  is released). `START_NOT_STICKY` is deliberate: the trip lives in memory, so a sticky
+  restart after process death would be a zombie "Recording trip" notification over nothing,
+  with no code path that could ever stop it. Relatedly, MainActivity releases GPS +
+  heading/tilt listeners at onStop unless a trip is RUNNING
+  (`AppContainer.releaseSensorsUnlessRecording`) and restarts them at onStart.
 - GPX: `String.format(Locale.ROOT, …)` is load-bearing — Kotlin's bare `format` is
   locale-aware and nb_NO would emit comma decimals no importer reads. The test runs the
   export under nb_NO to prove the pin.
