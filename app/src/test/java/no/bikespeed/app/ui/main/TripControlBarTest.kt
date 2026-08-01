@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CompletableDeferred
 import no.bikespeed.app.fixtures.TripTestHarness
 import no.bikespeed.app.model.TripState
 import org.junit.Rule
@@ -96,6 +97,42 @@ class TripControlBarTest {
         assertThat(harness.trip.accumulatedDistance).isGreaterThan(0.0)
         assertThat(harness.trip.canSaveTrip).isTrue()
         compose.onNodeWithTag("saveFailureDialog").assertIsDisplayed()
+    }
+
+    /**
+     * Save must be single-flight: canSaveTrip stays true until the write lands and reset()
+     * runs, and makeLogEntry() mints a fresh UUID per call — so without a guard, a
+     * double-tap (easy on a handlebar mount) writes the same ride twice under different
+     * primary keys and inflates every lifetime aggregate.
+     */
+    @Test
+    fun `a second tap while the save is in flight does not save twice`() {
+        val harness = TripTestHarness()
+        val gate = CompletableDeferred<Unit>()
+        var saved = 0
+        compose.setContent {
+            TripControlBar(
+                tripManager = harness.trip,
+                save = { _, _, _ ->
+                    saved++
+                    gate.await()
+                },
+            )
+        }
+        harness.anchor()
+        harness.trip.start()
+        harness.move(meters = 100.0, seconds = 10.0)
+        harness.trip.pause()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("saveButton").performClick()
+        compose.onNodeWithTag("saveButton").performClick() // rider's double-tap
+        gate.complete(Unit)
+        compose.waitForIdle()
+
+        assertThat(saved).isEqualTo(1)
+        assertThat(harness.trip.state).isEqualTo(TripState.IDLE)
+        compose.onNodeWithTag("savedDialog").assertIsDisplayed()
     }
 
     @Test

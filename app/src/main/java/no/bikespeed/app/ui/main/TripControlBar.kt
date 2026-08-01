@@ -55,6 +55,10 @@ fun TripControlBar(
     val scope = rememberCoroutineScope()
     var showSavedConfirmation by remember { mutableStateOf(false) }
     var showSaveFailure by remember { mutableStateOf(false) }
+    // Single-flight guard: canSaveTrip stays true until the write lands and reset() runs,
+    // and makeLogEntry() mints a fresh UUID per call — so an unguarded double-tap would
+    // write the same ride twice under different primary keys.
+    var isSaving by remember { mutableStateOf(false) }
 
     // Collected so this composable recomposes when the trip's state moves — the derived
     // canSave/canReset reads below are then fresh on every recomposition.
@@ -113,9 +117,11 @@ fun TripControlBar(
                 // other copy of the ride, and the confirmation says it's safe — so neither
                 // happens until the store says the trip is on disk. If the save fails the
                 // trip is still paused and still theirs, and tapping Save again retries.
+                if (isSaving) return@OutlinedButton
                 val entry = tripManager.makeLogEntry() ?: return@OutlinedButton
                 val profile = tripManager.altitudeProfile.toList()
                 val route = tripManager.routeSamples.toList()
+                isSaving = true
                 scope.launch {
                     try {
                         save(entry, profile, route)
@@ -123,10 +129,12 @@ fun TripControlBar(
                         showSavedConfirmation = true
                     } catch (_: Exception) {
                         showSaveFailure = true
+                    } finally {
+                        isSaving = false
                     }
                 }
             },
-            enabled = tripManager.canSaveTrip,
+            enabled = tripManager.canSaveTrip && !isSaving,
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF34C759)),
             modifier = Modifier.weight(1f).testTag("saveButton"),
         ) {
