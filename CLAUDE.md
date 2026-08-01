@@ -40,8 +40,10 @@ The harness's `Fix.north` divisor (111 100) deliberately overshoots real metres 
 sampling-interval boundaries (two 5 m hops crossing a 10 m interval) stay off the
 floating-point knife edge — see `Fixes.kt` before "correcting" it.
 
-The Maps API key goes in `local.properties` as `MAPS_API_KEY=…` (git-ignored; the checked-in
-`local.defaults.properties` keeps a keyless build running — the map just renders no tiles).
+The Maps API key goes in `secrets.properties` at the repo root as `MAPS_API_KEY=…`
+(git-ignored; NOT `local.properties`, which Android Studio warns it may regenerate). The
+checked-in `local.defaults.properties` keeps a keyless build running — the map just renders
+no tiles.
 
 ## Architecture (the ported rules — all inherited from iOS, all pinned by tests)
 

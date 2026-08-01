@@ -13,7 +13,7 @@ plugins {
 // the defaults file keeps a keyless build working — the map then renders no tiles, but the
 // rest of the detail screen is unaffected.
 secrets {
-    propertiesFileName = "local.properties"
+    propertiesFileName = "secrets.properties"
     defaultPropertiesFileName = "local.defaults.properties"
 }
 

@@ -37,7 +37,7 @@ BikeSpeed for Android is open source, and everything but one thing builds and ru
 
 1. Clone the repo and open it in Android Studio (or build from the command line with `./gradlew assembleDebug`; run the tests with `./gradlew testDebugUnitTest`).
 2. In the [Google Cloud Console](https://console.cloud.google.com/), create a project, enable the **Maps SDK for Android**, and create an API key. Dynamic in-app maps are currently a no-charge SKU, but a billing account must be attached to the project.
-3. Put the key in `local.properties` (git-ignored, never committed): `MAPS_API_KEY=your-key-here`.
+3. Create a `secrets.properties` file in the repo root (git-ignored, never committed) containing: `MAPS_API_KEY=your-key-here`.
 4. Before distributing a build, restrict the key to your app's package name and signing certificate in the Cloud Console.
 
 Without a key the app builds and runs fine — the map on the trip-detail screen just renders no tiles. Everything else, including trip recording, charts, and GPX export, works without it.
