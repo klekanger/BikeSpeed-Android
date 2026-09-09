@@ -2,6 +2,7 @@ package no.bikespeed.app.ui.main
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -75,17 +77,22 @@ fun MainScreen(
     // pieces so recomposition tracks it.
     val travelDirection = if (isCourseLive) course else (heading ?: course)
 
-    Box(
+    // Sized against the safe area rather than the screen: a phone with a three-button
+    // navigation bar hands the column ~60 dp less than a gesture-navigation one, and the
+    // gauge — not the spacing — is what gives way. See MainScreenLayout.
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
             .safeDrawingPadding(),
     ) {
+        val metrics = MainScreenLayout.forSafeArea(width = maxWidth, height = maxHeight)
+
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(metrics.topSpacing))
 
             SpeedometerGauge(
                 speedMetersPerSecond = displaySpeed,
@@ -93,12 +100,10 @@ fun MainScreen(
                 measurementSystem = measurementSystem,
                 locale = locale,
                 tilt = tilt,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp),
+                modifier = Modifier.size(metrics.gaugeSide),
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(MainScreenLayout.GaugeToStats))
 
             StatsPanel(
                 trip = TripStats(
@@ -122,16 +127,19 @@ fun MainScreen(
                 locale = locale,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp)
+                    .height(MainScreenLayout.StatsHeight)
                     .padding(horizontal = 16.dp),
             )
 
+            // The gap the control bar is guaranteed, then whatever a roomy screen has left
+            // over — never the other way round.
+            Spacer(modifier = Modifier.height(MainScreenLayout.MinStatsToControls))
             Spacer(modifier = Modifier.weight(1f))
 
             TripControlBar(
                 tripManager = tripManager,
                 save = container.tripDataStack::save,
-                modifier = Modifier.padding(bottom = 12.dp),
+                modifier = Modifier.padding(bottom = MainScreenLayout.ControlBarBottomPadding),
             )
         }
 
