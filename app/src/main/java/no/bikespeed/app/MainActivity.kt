@@ -2,6 +2,7 @@ package no.bikespeed.app
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
@@ -10,6 +11,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -33,6 +40,13 @@ class MainActivity : AppCompatActivity() {
 
     private val container: AppContainer
         get() = (application as BikeSpeedApplication).container
+
+    // The configuration Compose sees, fed from onConfigurationChanged. On API 29–32 the
+    // per-app-locale backport applies a language change by calling onConfigurationChanged
+    // directly and never dispatches it to the views, so Compose's own LocalConfiguration
+    // stays stale and the open screen keeps its old strings. Never-equal: the backport
+    // updates the Resources in place, and every delivery must invalidate stringResource.
+    private var configuration by mutableStateOf(Configuration(), neverEqualPolicy())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,11 +77,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        configuration = Configuration(resources.configuration)
         setContent {
-            BikeSpeedTheme {
-                BikeSpeedNavHost(container = container)
+            CompositionLocalProvider(LocalConfiguration provides configuration) {
+                BikeSpeedTheme {
+                    BikeSpeedNavHost(container = container)
+                }
             }
         }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        configuration = Configuration(newConfig)
     }
 
     override fun onStart() {

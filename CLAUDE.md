@@ -104,7 +104,12 @@ no tiles.
 - Localization: `AppCompatDelegate.setApplicationLocales` (MainActivity must stay an
   `AppCompatActivity`); every `getString` follows the override, so there is no iOS-style
   manual bundle lookup. Norwegian swaps the compass east/west axis (Ø/V) — the single-letter
-  resources double as the hemisphere letters.
+  resources double as the hemisphere letters. On API 29–32 the backport delivers a change
+  only to `MainActivity.onConfigurationChanged`, never to the views, so `MainActivity`
+  provides `LocalConfiguration` itself — without that, the open screen keeps its old strings
+  until a navigation. For the same reason, format numbers/units with `appLocale()` (the
+  configuration's locale), never `Locale.getDefault()`, which ignores the backport there.
+  `LanguageSwitchTest` pins both on SDK 29.
 
 ## Build-system notes (AGP 9)
 

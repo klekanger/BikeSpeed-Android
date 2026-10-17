@@ -70,6 +70,7 @@ import no.bikespeed.app.model.Coordinate
 import no.bikespeed.app.model.TripDurationFormatting
 import no.bikespeed.app.model.TripLogEntry
 import no.bikespeed.app.service.SettingsStore
+import no.bikespeed.app.ui.appLocale
 import no.bikespeed.app.ui.theme.GaugePalette
 
 /**
@@ -89,7 +90,7 @@ fun TripDetailScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val locale = Locale.getDefault()
+    val locale = appLocale()
     val zone = ZoneId.systemDefault()
     val measurementSystem = settings.measurementSystem
 

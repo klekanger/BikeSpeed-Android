@@ -20,8 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import java.util.Locale
 import no.bikespeed.app.AppContainer
+import no.bikespeed.app.ui.appLocale
 import no.bikespeed.app.ui.gauge.SpeedometerGauge
 import no.bikespeed.app.ui.stats.LocationReadout
 import no.bikespeed.app.ui.stats.StatsPanel
@@ -70,7 +70,7 @@ fun MainScreen(
     val maxGaugeSpeedKmh by settings.maxGaugeSpeedKmhFlow.collectAsState()
     val tilt by container.tiltProvider.tilt.collectAsState()
 
-    val locale = Locale.getDefault()
+    val locale = appLocale()
 
     // Not `course`: it goes stale the moment the rider stops. travelDirection hands over to
     // the compass at a standstill — see LocationManager. Recomputed here from the collected
