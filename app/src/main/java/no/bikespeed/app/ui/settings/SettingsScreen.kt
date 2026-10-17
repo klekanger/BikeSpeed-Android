@@ -34,10 +34,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.Locale
 import no.bikespeed.app.model.AppLanguage
 import no.bikespeed.app.model.MeasurementSystem
 import no.bikespeed.app.service.SettingsStore
+import no.bikespeed.app.ui.appLocale
 import no.bikespeed.app.ui.theme.GaugePalette
 
 /**
@@ -56,7 +56,7 @@ fun SettingsScreen(
     val measurementSystem by settings.measurementSystemFlow.collectAsState()
     val maxGaugeSpeedKmh by settings.maxGaugeSpeedKmhFlow.collectAsState()
     val appLanguage by settings.appLanguageFlow.collectAsState()
-    val locale = Locale.getDefault()
+    val locale = appLocale()
 
     Scaffold(
         modifier = modifier,

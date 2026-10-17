@@ -26,10 +26,10 @@ android {
     }
 
     defaultConfig {
-        applicationId = "no.bikespeed.app"
+        applicationId = "no.lekanger.bikespeed"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
+        versionCode = 3
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

@@ -48,8 +48,8 @@
     <string name="auto_pause_footer">Pauses distance and time automatically when you stop.</string>
     <string name="section_gauge">Speedometer</string>
     <string name="units">Units</string>
-    <string name="metric">Metric</string>
-    <string name="imperial">Imperial</string>
+    <string name="metric">Metric (km, m)</string>
+    <string name="imperial">Imperial (mi, ft)</string>
     <string name="language">Language</string>
     <string name="system">System</string>
     <string name="back">Back</string>

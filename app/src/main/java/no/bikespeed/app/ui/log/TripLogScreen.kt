@@ -63,6 +63,7 @@ import no.bikespeed.app.model.TripLogEntry
 import no.bikespeed.app.model.TripLogSummary
 import no.bikespeed.app.model.TripMonth
 import no.bikespeed.app.service.SettingsStore
+import no.bikespeed.app.ui.appLocale
 import no.bikespeed.app.ui.theme.GaugePalette
 
 /**
@@ -81,7 +82,7 @@ fun TripLogScreen(
 ) {
     val scalars by stack.repository.observeScalars().collectAsState(initial = null)
     val measurementSystem by settings.measurementSystemFlow.collectAsState()
-    val locale = Locale.getDefault()
+    val locale = appLocale()
     val zone = ZoneId.systemDefault()
 
     // Not persisted: it resets to ALL each time the log is opened, matching iOS.
