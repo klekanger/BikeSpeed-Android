@@ -26,7 +26,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "no.bikespeed.app"
+        applicationId = "no.lekanger.bikespeed"
         minSdk = 29
         targetSdk = 36
         versionCode = 1

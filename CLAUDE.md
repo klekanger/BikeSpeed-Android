@@ -121,4 +121,4 @@ no tiles.
 - `manifestPlaceholders["MAPS_API_KEY"] = ""` in `defaultConfig` is the fallback for the
   unit-test manifest the secrets plugin doesn't reach.
 
-Application id / namespace: `no.bikespeed.app`. Min SDK 29 (Android 10).
+Application id: `no.lekanger.bikespeed` (what Play knows the app as). Namespace (Kotlin packages, `R`): `no.bikespeed.app`. Min SDK 29 (Android 10).
