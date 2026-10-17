@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -26,9 +28,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.abs
@@ -122,11 +126,18 @@ fun StatCell(
         Modifier
     }
 
-    Box(modifier = modifier.then(interactive).fillMaxSize()) {
+    // The page indicator gets its own row under the readout rather than being overlaid on the
+    // cell's bottom edge: a tall readout (the two-line GPS position) would otherwise run its
+    // caption into the dots. The readout centres in whatever height the dots leave it.
+    Column(
+        modifier = modifier.then(interactive).fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 12.dp),
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(start = 8.dp, end = 8.dp, top = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -140,10 +151,13 @@ fun StatCell(
             )
 
             // A two-line value (the GPS position, the one readout with a newline) shrinks
-            // rather than growing the cell.
+            // rather than growing the cell — line height included: the theme's 24 sp body line
+            // height would set the two lines so far apart the caption no longer fits.
+            val twoLineValue = value.contains("\n")
             Text(
                 text = value,
-                fontSize = if (value.contains("\n")) 14.sp else 20.sp,
+                fontSize = if (twoLineValue) 14.sp else 20.sp,
+                lineHeight = if (twoLineValue) 17.sp else TextUnit.Unspecified,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White,
                 textAlign = TextAlign.Center,
@@ -163,7 +177,7 @@ fun StatCell(
                 color = Color(0xFF9E9E9E),
                 textAlign = TextAlign.Center,
                 maxLines = 2,
-                modifier = Modifier.padding(top = 6.dp),
+                modifier = Modifier.padding(top = 6.dp).testTag("statCellCaption"),
             )
         }
 
@@ -171,8 +185,8 @@ fun StatCell(
         if (paging != null) {
             Row(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = pageIndicatorInset),
+                    .padding(top = 4.dp, bottom = pageIndicatorInset)
+                    .testTag("statCellPageIndicator"),
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
                 repeat(paging.names.count()) { index ->
@@ -186,6 +200,9 @@ fun StatCell(
                     )
                 }
             }
+        } else {
+            // The same room, left empty, so this readout centres level with a paged neighbour's.
+            Spacer(modifier = Modifier.padding(top = 4.dp, bottom = pageIndicatorInset).size(5.dp))
         }
     }
 }
