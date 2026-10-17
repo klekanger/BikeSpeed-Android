@@ -25,6 +25,14 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
 
+        <!-- Google's documented requirement for the Maps legacy renderer, which Play services
+             still falls back to on older devices. Without it the trip detail's map crashes the
+             app (NoClassDefFoundError: org/apache/http/ProtocolVersion) — reproduced on an
+             emulator with Play services 25.08. Not required, so devices without it still install. -->
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
